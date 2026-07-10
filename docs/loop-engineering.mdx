@@ -1,0 +1,56 @@
+---
+title: "What is loop engineering"
+description: "Designing the system that prompts an agent — and where loop.js fits in the practice"
+---
+
+**Loop engineering** is the practice of designing the system that prompts an AI agent —
+instead of prompting it turn by turn. You define a goal, a way for the agent to find and do
+work, a way to verify the result, and a stop condition; the loop does the iterating. The
+term spread in mid-2026, after Claude Code's creator described his own workflow as "loops
+that prompt Claude" — by then coding agents were reliable enough at long-horizon work that
+the scarce skill had moved from writing prompts to designing the system that writes them.
+
+## The elements of a loop
+
+Every serious agent loop answers five questions:
+
+| Question              | loop.js answer                                                        |
+| --------------------- | --------------------------------------------------------------------- |
+| What is the work?     | a **Goal** — set once, judged every Round                              |
+| How does it iterate?  | **Rounds** — each starts with fresh context and reads memory from disk |
+| Who says it's done?   | a separate, skeptical **Verify** agent — never the worker itself       |
+| When does it stop?    | when the Loop **settles** (bar met, or judged impossible) — limits are guards, never goals |
+| What re-triggers it?  | any real scheduler — `loop cron` installs Entries into crontab, launchd, Task Scheduler, or Modal |
+
+## Where loop.js stands in the practice
+
+The simplest loops — shell scripts and minimal runners in the
+[ralph-loop](https://ralphloops.io/) tradition — re-prompt an agent with fresh context until
+a script check passes or a human stops it. That shape is powerful, and loop.js keeps its
+core insight (fresh context per iteration, state on disk). What loop.js adds is the
+**verdict**:
+
+- **Writer ≠ grader.** A self-grading agent passes its own work; the better the model, the
+  more confidently it does so. Verify runs as a separate agent, read-only by permission —
+  not by prompt discipline.
+- **Digest-first, escalate when suspicious.** The judge reads the worker's handoff digest
+  and can escalate — inspect the work tree, run the build, read the transcript — instead of
+  rubber-stamping a summary.
+- **A "not yet" must say why.** The verdict's `reason` is mandatory and feeds the next
+  Round, so iteration converges instead of retrying blind.
+- **Impossible is an answer.** A Goal that can never pass settles as a give-up instead of
+  burning budget to the cap.
+- **Guards, declared.** Rounds, dollars, and per-Round wall clock bound the loop; a
+  schedule Entry declares its own lifetime (`--until settled | forever`, capped).
+
+## Try it
+
+```sh
+npm create @loop.js@latest my-loop
+cd my-loop && npm install
+loop run
+```
+
+<Card title="Quickstart" icon="rocket" href="/quickstart">
+  From empty directory to a settled Goal.
+</Card>

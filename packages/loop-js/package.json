@@ -24,9 +24,9 @@
     "url": "git+https://github.com/loop-js/loop.js.git",
     "directory": "packages/loop-js"
   },
-  "homepage": "https://github.com/loop-js/loop.js#readme",
+  "homepage": "https://loop-js.mintlify.site",
   "bugs": "https://github.com/loop-js/loop.js/issues",
-  "keywords": ["agent", "agent-loop", "autonomous", "claude", "verify", "llm", "cron", "cli"],
+  "keywords": ["loop-engineering", "agent", "agent-loop", "autonomous", "claude", "verify", "llm", "cron", "cli"],
   "engines": {
     "node": ">=22.18.0"
   },

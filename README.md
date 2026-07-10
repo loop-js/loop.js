@@ -2,11 +2,13 @@
 
 **Stop prompting agents. State a Goal, and let the loop drive.**
 
-loop.js is a thin, opinionated TypeScript runtime for autonomous agent loops. You state a
-**Goal**; the engine drives **Rounds** — an Execute agent works in the work tree, then a
-separate, skeptical **Verify** agent judges the result against the bar — until the Goal
-**settles**. Every Round starts with fresh context and reads its memory from disk, so the
-loop survives crashes, restarts, and weeks on a schedule.
+loop.js is a **loop engineering** framework — a thin, opinionated TypeScript runtime for
+autonomous agent loops. You state a **Goal**; the engine drives **Rounds** — an Execute
+agent works in the work tree, then a separate, skeptical **Verify** agent judges the result
+against the bar — until the Goal **settles**. Every Round starts with fresh context and
+reads its memory from disk, so the loop survives crashes, restarts, and weeks on a schedule.
+
+📖 **Docs: [loop-js.mintlify.site](https://loop-js.mintlify.site/)**
 
 ```sh
 npm create @loop.js@latest my-loop
@@ -44,6 +46,15 @@ does so. loop.js makes the writer/grader separation non-negotiable:
   Round, so the loop converges instead of retrying blind.
 - **Impossible is an answer.** A Goal that can never pass settles as a give-up instead of
   burning the budget to its cap.
+
+## Loop engineering, with a verdict
+
+*Loop engineering* is the practice of designing the system that prompts an agent — goal,
+iteration, verification, stop conditions — instead of prompting it turn by turn. Most loop
+runners iterate until a script or the agent itself says stop. loop.js is built around the
+missing piece: **an independent verdict**. The loop doesn't end because the worker feels
+done; it ends because a separate judge, with its own permissions and its own model, says
+the bar is met — or because a declared guard fires. [Read more →](https://loop-js.mintlify.site/loop-engineering)
 
 ## What a Round looks like
 
@@ -97,7 +108,8 @@ const exit = await run.done()
 
 ## Docs
 
-Full documentation lives in [`docs/`](docs/) — quickstart, concepts, CLI and API reference.
+Full documentation: **[loop-js.mintlify.site](https://loop-js.mintlify.site/)** — quickstart,
+concepts, CLI and API reference (source in [`docs/`](docs/)).
 
 ## License
 

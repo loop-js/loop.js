@@ -18,9 +18,9 @@
     "url": "git+https://github.com/loop-js/loop.js.git",
     "directory": "packages/create-loop-js"
   },
-  "homepage": "https://github.com/loop-js/loop.js#readme",
+  "homepage": "https://loop-js.mintlify.site",
   "bugs": "https://github.com/loop-js/loop.js/issues",
-  "keywords": ["scaffold", "create", "agent", "agent-loop", "claude", "loop-js"],
+  "keywords": ["scaffold", "create", "loop-engineering", "agent", "agent-loop", "claude", "loop-js"],
   "engines": {
     "node": ">=22.18.0"
   },
