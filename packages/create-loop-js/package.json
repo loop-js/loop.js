@@ -4,7 +4,7 @@
   "description": "Scaffold a loop.js project (config + workspace/ + .loop/). Its separateness is imposed by the `npm create` convention.",
   "type": "module",
   "bin": {
-    "create-loop-js": "./dist/index.js"
+    "create-loop-js": "dist/index.js"
   },
   "files": [
     "dist"

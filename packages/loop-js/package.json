@@ -10,7 +10,7 @@
     }
   },
   "bin": {
-    "loop": "./dist/cli/index.js"
+    "loop": "dist/cli/index.js"
   },
   "files": [
     "dist"
