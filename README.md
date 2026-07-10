@@ -4,8 +4,8 @@
 
 You state a goal and what "done" means. The engine runs an agent at it, Round after Round —
 fresh context every Round, memory read back from disk — until a separate, skeptical judge
-rules the bar met. Run it from a terminal, put it on a schedule, or embed it in a product:
-same engine, same guarantees.
+rules the bar met. Run it from a terminal, schedule it — on your machine or deployed to
+Modal's cloud — or embed it in a product: same engine, same guarantees.
 
 [![npm](https://img.shields.io/npm/v/@loop.js/core.svg)](https://www.npmjs.com/package/@loop.js/core)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -77,12 +77,35 @@ export default Loop.define({
 npx loop cron add "0 8 * * 1-5" --until forever   # weekday mornings, until you remove it
 ```
 
+**Trade a strategy, audited every day.** The worker trades through your broker's API;
+the judge audits every order against the strategy — and a breach settles as a give-up, so
+the loop never retries its way into more orders:
+
+```ts
+export default Loop.define({
+  goal: "Today's trades are executed and logged in ./trades, dated — follow ./strategy.md: check its signals, size positions within its caps, attach a stop-loss to every order",
+  verify: "Every order in today's log matches a strategy.md rule, respects its caps, carries a stop-loss, and reconciles with the broker's confirmations — any breach is a give-up, not a retry",
+  permissions: "bypass", // broker API + market data need the network — run contained
+  limits: { rounds: 3, usd: 2 },
+})
+```
+
+```sh
+npx loop cron add "30 9 * * 1-5" --until forever --backend modal   # weekday mornings — deployed to Modal, no machine of yours stays on
+```
+
+The `usd` guard caps what the loop spends on the model, never what the strategy trades —
+position caps live in `strategy.md` and in your broker account's own limits.
+
 **Chores that should stay done.** Same shape, pointed at upkeep — schedule with
 `--until settled` (the entry removes itself at the first settle) or `--until forever`:
 
 - "Dependencies are current, `bun test` is green, and the changelog has an entry" — weekly
+- "Every new issue has a triage label and a first response" — nightly
 - "Every TODO in ./src links an issue or is deleted"
 - "Test coverage ≥ 80%, no skipped tests"
+- "Yesterday's ETL output exists in ./data and passes its sanity checks"
+- "Every post in ./posts has an up-to-date Chinese translation"
 
 **One pass, no judging.** `Agent.define` is the same Execute phase run bare — one ungraded
 pass, no verdict, no convergence machinery:
@@ -109,6 +132,30 @@ the tight engine defaults — 3 Rounds, $1, 5 minutes per Round — and every ot
 commented line carrying its default. First runs stop cheap by design; raising the guards
 is the deliberate act.
 [Full quickstart →](https://loop-js.mintlify.site/quickstart)
+
+## Schedule it — local, or deployed to Modal
+
+`loop cron` installs an Entry into a **real scheduler** and never runs one itself. A fired
+Entry simply runs `loop run` — the Lock makes any cadence overlap-safe — and every Entry
+declares its own lifetime at `add`:
+
+```sh
+npx loop cron add "*/30 * * * *" --until settled                # a watchdog: gone at the first settle (capped)
+npx loop cron add "0 8 * * *"    --until forever                # standing: each tick re-judges through the Verify gate
+npx loop cron add "0 8 * * *"    --until forever --backend modal   # the same Entry, deployed to Modal's cloud
+npx loop cron list
+npx loop cron remove <id>
+```
+
+| Backend | Where it runs | Where State lives |
+| --- | --- | --- |
+| `local` (default) | crontab (Linux), launchd (macOS), Task Scheduler (Windows) | the project directory |
+| `modal` | a `modal.Cron` fires an ephemeral Runner per tick — no machine of yours stays on | a Modal Volume — `remove` deletes the Entry, **never** its Volume |
+
+With `--backend modal`, `add` deploys with your own Modal token and stores your
+`ANTHROPIC_API_KEY` once as a shared `modal.Secret` named `loop-js` — created only when
+absent, rotated with one `modal secret create --force`, no redeploy.
+[Scheduling →](https://loop-js.mintlify.site/cli/cron)
 
 ## One Round
 
