@@ -15,7 +15,7 @@ same engine, same guarantees.
 import { Loop } from "@loop.js/core"
 
 const loop = Loop.define({
-  goal: "A playable 2D platformer lives in ./game",
+  goal: "Build a playable 2D platformer",
   verify: "It builds clean, `bun test` passes, and the game boots to a controllable character",
   limits: { rounds: 20, usd: 10 },
 })
@@ -50,7 +50,7 @@ everything around it — and that is the part loop.js owns:
 ```ts
 // loop.config.ts
 export default Loop.define({
-  goal: "A playable 2D platformer lives in ./game — arrow keys, jump physics, win and lose states",
+  goal: "Build a playable 2D platformer — arrow keys, jump physics, win and lose states",
   verify: "`bun test` passes and `bun run build` emits a bundle that boots without console errors",
   limits: { rounds: 30, usd: 15, timeout: "20m" },
 })
