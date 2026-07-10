@@ -57,18 +57,54 @@ loop cron add "0 8 * * *" --until forever --expires 30d                   # stan
 
 ## Backends: `--backend`
 
-**`local`** (the default) installs into the OS's own scheduler, chosen by
-platform: **crontab** on Linux and other unix, **launchd** on macOS (cron there
-skips ticks while the machine sleeps and sits behind Full Disk Access), and
-**Task Scheduler** (`schtasks`) on Windows.
+| Backend | Where a tick runs | State lives |
+| --- | --- | --- |
+| `local` (default) | your machine — the OS's own scheduler | the project directory |
+| `modal` | the cloud — Modal fires an ephemeral Runner per tick | a Modal Volume |
 
-**`modal`** installs into the cloud: Modal fires an ephemeral Runner per tick.
-It needs your own Modal token — pass `--token-id`/`--token-secret`, set
-`MODAL_TOKEN_ID`/`MODAL_TOKEN_SECRET`, or have run `modal token set`.
+**`local`** installs into the OS's own scheduler, chosen by platform: **crontab**
+on Linux and other unix, **launchd** on macOS (cron there skips ticks while the
+machine sleeps and sits behind Full Disk Access), and **Task Scheduler**
+(`schtasks`) on Windows.
+
+## Modal: `--backend modal`
 
 ```bash
 loop cron add "0 8 * * *" --until forever --backend modal
 ```
+
+`add` deploys one Modal App per Entry, carrying a `modal.Cron` on your
+expression; each tick fires an ephemeral Runner that runs `loop run` against the
+Volume. You bring your own Modal token — pass `--token-id`/`--token-secret`, set
+`MODAL_TOKEN_ID`/`MODAL_TOKEN_SECRET`, or have run `modal token set`; loop.js
+runs no OAuth of its own.
+
+What an Entry deploys, and what each part holds:
+
+| Resource | Name | What it holds |
+| --- | --- | --- |
+| App + `modal.Cron` | `loop-js-<id>` | the schedule and the per-tick function |
+| Image | baked at `add` | the project code — code delivery, never State |
+| Volume | `loop-js-<id>` | **State** — the work tree, `.loop/`, `.handoff/`; seeded by the first tick |
+| `modal.Dict` | `loop-js-<id>-lock` | the tick lock — overlap arbitration off the Volume |
+| `modal.Secret` | `loop-js` (one, shared) | the agents' key — `ANTHROPIC_API_KEY` (else `CLAUDE_CODE_OAUTH_TOKEN`) |
+
+The rules that follow from that split:
+
+- **`remove` deletes the Entry, never its Volume** — removing a schedule never
+  destroys State. (The lock Dict goes with the Entry.)
+- **The Secret is created only when absent, never overwritten.** `add` harvests
+  the key from its environment into the one shared `loop-js` Secret every
+  Entry's function mounts. Rotation is one
+  `modal secret create loop-js --force …` — no Entry redeploys.
+- **Overlap is skip-only**: a tick that finds a fresh claim in the Dict prints
+  one line and exits `0`; a stale claim is taken over, same as the engine's own
+  Lock. Volume commits are last-write-wins, which is why the lock lives in the
+  Dict and only State rides the Volume.
+- **A tick runs with Modal's maximum Function timeout (24h)** — on this backend
+  the platform ceiling is the outer guard on Run duration.
+- On `--until settled`, the settling tick stops its own App — the Entry removes
+  itself in the cloud exactly as it does locally.
 
 ## `list` and `remove`
 

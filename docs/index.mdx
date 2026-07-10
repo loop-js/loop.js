@@ -1,25 +1,44 @@
 ---
 title: "What is loop.js"
-description: "State a Goal; the engine drives Rounds until a skeptical Verify agent settles it"
+description: "The agent loop as an API — embed it in your product, not in your terminal"
 ---
 
-loop.js is a thin, opinionated TypeScript runtime for autonomous agent loops. You state a
-**Goal**; the engine drives **Rounds** — an Execute agent works in the work tree, then a
-separate, skeptical **Verify** agent judges the result against the bar — until the Goal
-**settles**.
+**The agent loop as an API — embed it in your product, not in your terminal.**
+
+`Loop.define` / `loop.run` / typed events. You state a **Goal**; the engine drives
+**Rounds** — an Execute agent works, then a separate, skeptical **Verify** agent judges the
+result against the bar — until the Goal **settles**. Only that verdict, never the worker's
+own claim, ends the loop.
 
 ```ts
 import { Loop } from "@loop.js/core"
 
-export default Loop.define({
-  goal: "Build a playable 2D platformer in ./game.",
-  limits: { rounds: 3, usd: 1 },
+const loop = Loop.define({
+  goal: "Build a playable 2D platformer in ./game",
+  limits: { rounds: 10, usd: 5 },
 })
+
+const run = loop.run()                        // self-drives; iterate to observe
+for await (const e of run) {
+  if (e.type === "verdict") console.log(e.round, e.ok, e.reason)
+}
+
+const exit = await run.done()
+// { settled: true, verdict } — a judge said done, not the worker
 ```
 
-## The shape of the loop
+## What's in the box
 
-Each Round is four beats:
+| | |
+| --- | --- |
+| **An API** | `Loop.define` / `loop.run` / a typed [event stream](/api/events) — plus a thin [CLI](/cli/run) over the same engine |
+| **A separate judge** | a read-only [Verify agent](/concepts/loop) judges every Round; only its verdict settles the Loop |
+| **State on disk** | fresh context every Round, memory read back from the Workspace — survives crashes and schedules |
+| **Declared guards** | [`rounds` / `usd` / `timeout`](/concepts/limits); every ending is a typed Exit with its own exit code |
+| **One writer** | the Lock (compare-and-set + heartbeat) makes any trigger cadence overlap-safe |
+| **Real schedulers** | [`loop cron`](/cli/cron) installs into crontab / launchd / Task Scheduler — or **Modal** in the cloud |
+
+## One Round, four beats
 
 1. **Execute** — an agent works toward the Goal inside the work tree (`./workspace` by default).
 2. **Handoff** — the agent leaves a note for the next Round: what it did, what it believes is left.
@@ -43,9 +62,9 @@ build, checking the transcript.
 ## No daemon
 
 loop.js runs nothing in the background. `loop run` drives Rounds in the foreground and
-exits; `loop cron` installs Entries into a real scheduler — crontab, launchd, Task
-Scheduler, or Modal — and a fired Entry simply runs `loop run` again. State lives on disk,
-so the loop is exactly as durable as your filesystem.
+exits; [`loop cron`](/cli/cron) installs Entries into a real scheduler — crontab, launchd,
+Task Scheduler, or Modal — and a fired Entry simply runs `loop run` again. State lives on
+disk, so the loop is exactly as durable as your filesystem.
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">

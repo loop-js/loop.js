@@ -60,11 +60,14 @@ loop status --json   # for machines
 Let a real scheduler re-trigger the loop instead of babysitting it:
 
 ```sh
-loop cron add "0 8 * * *" --until settled
+loop cron add "0 8 * * *" --until settled                  # local: crontab / launchd / Task Scheduler
+loop cron add "0 8 * * *" --until settled --backend modal  # same, in the cloud — Modal fires a Runner per tick
 ```
 
 The Entry runs `loop run` in this directory every morning and removes itself at the first
-settle — capped at 3 runs / 24 hours by default, in case it never does.
+settle — capped at 3 runs / 24 hours by default, in case it never does. With
+`--backend modal`, State lives on a Modal Volume and removing the Entry never deletes it —
+see [loop cron](/cli/cron#modal---backend-modal).
 
 ## Where things live
 

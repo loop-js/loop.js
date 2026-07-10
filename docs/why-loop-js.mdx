@@ -18,9 +18,10 @@ something you *run* and becomes something you *ship* — a system with a bar to 
 budget to respect, state to keep, and no human watching.
 
 The distinction in one sentence: **`/goal`, `/loop`, and `/schedule` are commands inside
-Claude Code; loop.js is the convergence machinery as a library.** Everything a loop needs
-to reach *done* — an independent verdict, durable state, declared guards, real scheduling —
-built into one npm package, driving the same Claude agents underneath.
+Claude Code; loop.js is the same convergence machinery as an API — `Loop.define` /
+`loop.run` / typed events, embedded in your product instead of your terminal.** Everything
+a loop needs to reach *done* — an independent verdict, durable state, declared guards, real
+scheduling — in one npm package, driving the same Claude agents underneath.
 
 ## What each owns
 
@@ -34,11 +35,14 @@ built into one npm package, driving the same Claude agents underneath.
 | Surface | a command inside Claude Code | a command inside Claude Code | a command inside Claude Code | a typed library — `Loop.define` / `loop.run`, an event stream, CLI exit codes |
 
 The nearest sibling is `/goal` — it, too, refuses to let the worker declare victory early.
-The difference is what the judgement is made of and where the loop lives: `/goal`'s
-evaluator runs inside your session and ends with it; loop.js's Verify agent is a separate
-session with its own model and read-only permissions, its mandatory `reason` feeds the next
-Round, a Goal it can never meet settles as an explicit give-up, and the whole thing
-resumes from disk on any machine, any trigger, weeks later.
+The differences, side by side:
+
+| | `/goal` | loop.js |
+| --- | --- | --- |
+| The judge | an evaluator inside your session | a separate Verify session — own model, read-only permissions |
+| Feedback | — | a mandatory `reason` on every verdict, fed to the next Round |
+| An unmeetable goal | runs to the turn cap | settles as an explicit give-up (`impossible`) |
+| Lifetime | ends with your session | resumes from disk — any machine, any trigger, weeks later |
 
 ## What the convergence machinery buys you
 

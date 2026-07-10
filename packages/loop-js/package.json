@@ -1,6 +1,6 @@
 {
   "name": "@loop.js/core",
-  "version": "0.0.0",
+  "version": "0.1.0-beta",
   "description": "A thin, opinionated runtime for autonomous agent loops — state a Goal, the engine drives Rounds until a skeptical Verify agent settles it.",
   "type": "module",
   "exports": {
