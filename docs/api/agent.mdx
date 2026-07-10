@@ -1,0 +1,82 @@
+---
+title: "Agent.define"
+description: "The ungraded sibling: run the Execute phase once — no Verify, no Verdict, no convergence."
+---
+
+A **Loop** is judged and convergent; its sibling, the **Agent run**, is the Execute phase
+run bare: one ungraded pass. `Agent.define(config)` takes the Loop core minus everything
+that serves convergence — no `verify`, no `rounds`, no Lock, no Record, no Persist —
+and `agent.run()` runs Execute once and returns.
+
+```ts
+import { Agent } from "@loop.js/core"
+
+const agent = Agent.define({
+  goal: "Post yesterday's sales summary to #reports",
+  limits: { usd: 2 },
+})
+
+const run = agent.run()
+for await (const e of run) {
+  if (e.type === "text-delta") render(e.text) // no phases, no verdict
+  if (e.type === "exit") notify(e.exit)       // AgentExit
+}
+```
+
+A Loop **resumes**; an Agent run **recurs**. The two constructors produce nominally
+distinct definitions — neither `run` accepts the other's config.
+
+## AgentConfig
+
+Only `goal` is required.
+
+| Field | Type | Default | Meaning |
+| ----- | ---- | ------- | ------- |
+| `goal` | `Prompt` | required | The objective — same [Prompt shape](/api/define#prompt) as a Loop's. |
+| `execute` | `{ prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The Execute binding. Prompt omitted → the Goal stands in. |
+| `limits` | `AgentLimits` | `usd: 1`, `timeout: "5m"` | `usd` and `timeout` only — no convergence, so no `rounds`. |
+| `permissions` | `Permissions` | `"auto"` | Same [Permissions values](/api/define#permissions) as a Loop's Execute phase. |
+| `workspace` | `string` | `"./workspace"` | Points the work tree elsewhere. |
+
+## agent.run
+
+`run(options?)` returns an `AgentRun` — the same handle shape as a Loop's `Run`, over the
+Agent's leaner event and exit types:
+
+```ts
+interface AgentRun extends AsyncIterable<AgentEvent> {
+  cancel(): void
+  done(): Promise<AgentExit>
+}
+
+type AgentRunOptions = { signal?: AbortSignal; debug?: boolean }
+```
+
+No `fresh`, `force`, `rounds`, or `deadline` — there is nothing to resume, take over, or
+slice. Startup failures never include `LoopBusy` (there is no Lock); if two Agent runs
+share a Workspace, serializing them is the caller's job.
+
+## AgentExit
+
+```ts
+type AgentExit =
+  | { finished: true; reason: string }
+  | { finished: false; cause: "budget" | "cancel" | "error"; reason: string }
+```
+
+`finished: true` means the agent reached a terminal stop — **ungraded, not a "done"
+claim**. Nothing judged the work; if "done" must be proven, that is what a
+[Loop](/api/define) is for.
+
+## AgentEvent
+
+The stream is content + cost + a terminal `exit` — its own clean type, not a subset of
+`LoopEvent`. There are no phases, so the envelope is a bare `{ seq }`; there is no
+`phase-start` and no `verdict`. The event kinds it shares with the Loop stream
+(`text`, `text-delta`, `reasoning`, `tool-call`, `tool-result`, `cost`) carry the same
+payloads — see [Events](/api/events).
+
+## No status()
+
+An Agent run keeps no Record, so there is nothing to read back — `AgentDefinition` has no
+`status()`. For a Loop's disk snapshot, see [definition.status](/api/status).

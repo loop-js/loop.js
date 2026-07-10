@@ -1,0 +1,65 @@
+---
+title: "Exports"
+description: "Everything @loop.js/core exports — the complete public surface, one line each."
+---
+
+The complete public surface of `@loop.js/core`. If it isn't on this page, it isn't public.
+
+## Values
+
+| Export | What it is | Reference |
+| --- | --- | --- |
+| `Loop` | `Loop.define(config)` — pure function, returns a `LoopDefinition` | [Loop.define](/api/define) |
+| `Agent` | `Agent.define(config)` — the ungraded sibling, returns an `AgentDefinition` | [Agent.define](/api/agent) |
+| `LoopBusy` | the startup error thrown when a live owner holds the Lock — carries `pid` and `heartbeatAgeMs` | [definition.run](/api/run#loopbusy) |
+
+## Definition and handle types
+
+| Type | What it is | Reference |
+| --- | --- | --- |
+| `LoopConfig` | `Loop.define`'s input — only `goal` required | [Loop.define](/api/define) |
+| `AgentConfig` | `Agent.define`'s input — the Loop core minus convergence | [Agent.define](/api/agent) |
+| `LoopDefinition` | what `Loop.define` returns: `run()` + `status()` | [Loop.define](/api/define) |
+| `AgentDefinition` | what `Agent.define` returns: `run()` only | [Agent.define](/api/agent) |
+| `LoopStatic` / `AgentStatic` | the shapes of the `Loop` / `Agent` namespaces themselves | — |
+| `Run` | the Loop run handle: `AsyncIterable<LoopEvent>` + `cancel()` + `done(): Promise<Exit>` | [definition.run](/api/run) |
+| `AgentRun` | the same handle shape over `AgentEvent` / `AgentExit` | [Agent.define](/api/agent) |
+| `RunOptions` | `signal`, `fresh`, `force`, `debug`, and the yield-slicing `rounds` / `deadline` | [definition.run](/api/run#runoptions) |
+| `AgentRunOptions` | `signal` and `debug` only | [Agent.define](/api/agent) |
+
+## Authoring types
+
+| Type | What it is | Reference |
+| --- | --- | --- |
+| `Prompt` | one shape, three homes: a literal, `{ file }`, or a per-round function | [Loop.define](/api/define#prompt) |
+| `ExecuteCtx` | the deliberately starved per-round context a function Prompt receives | [Loop.define](/api/define#prompt) |
+| `ExecuteSpec` / `VerifySpec` | per-phase binding: `prompt?`, `model?`, `permissions?` | [Loop.define](/api/define#loopconfig) |
+| `Limits` | `rounds`, `usd`, `timeout` — every field optional | [Loop.define](/api/define#limits) |
+| `AgentLimits` | `usd` and `timeout` — no `rounds` | [Agent.define](/api/agent#agentconfig) |
+| `Permissions` | `"read" \| "auto" \| "bypass"`, resolved per phase | [Loop.define](/api/define#permissions) |
+
+## Result and status types
+
+| Type | What it is | Reference |
+| --- | --- | --- |
+| `Verdict` | the Verify agent's result — `ok` / not-ok-`impossible`, `reason` mandatory | [Concepts: the Loop](/concepts/loop) |
+| `VerdictWire` | the flat `{ ok, impossible, reason }` the `verdict` event carries | [Events](/api/events) |
+| `Exit` | how a Run ended: `{ settled: true, verdict }` or `{ settled: false, cause, reason }` | [definition.run](/api/run#cancel-and-done) |
+| `InterruptCause` | `"budget" \| "rounds" \| "cancel" \| "error" \| "yield"` | [definition.run](/api/run#cancel-and-done) |
+| `AgentExit` | `{ finished: true, reason }` or `{ finished: false, cause, reason }` | [Agent.define](/api/agent#agentexit) |
+| `LoopStatus` | the disk snapshot `status()` returns | [definition.status](/api/status) |
+
+## Event types
+
+| Type | What it is | Reference |
+| --- | --- | --- |
+| `LoopEvent` | the full event union a `Run` yields | [Events](/api/events) |
+| `AgentEvent` | the Agent run's leaner union — no `phase-start`, no `verdict` | [Events](/api/events#agentevent) |
+| `EventEnvelope` | `{ seq, round, phase }` on every journaled Loop event | [Events](/api/events) |
+| `AgentEventEnvelope` | the bare `{ seq }` on every Agent event | [Events](/api/events#agentevent) |
+| `CostPayload` | `{ inputTokens, outputTokens, cachedInputTokens, usd }` per step | [Events](/api/events) |
+| `Phase` | `"execute" \| "handoff" \| "verify"` | [Events](/api/events) |
+
+Time-valued fields (`limits.timeout`, `RunOptions.deadline`, `loop cron --expires`) all
+speak one duration grammar — a whole number with a unit: `"45s"`, `"90m"`, `"36h"`, `"7d"`;
+fields typed `number | Duration` also read a bare number of seconds.

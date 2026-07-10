@@ -1,0 +1,61 @@
+---
+title: "Events"
+description: "The LoopEvent stream — self-describing, replayable, observability only."
+---
+
+`loop.run()` yields a `LoopEvent` union — **observability only, never the loop's state**.
+Every journaled event is self-describing: it carries `{ seq, round, phase }` in its
+envelope, so any slice of the journal is interpretable alone. `seq` is the monotonic
+replay key.
+
+```ts
+type Phase = "execute" | "handoff" | "verify"
+type EventEnvelope = { seq: number; round: number; phase: Phase }
+```
+
+## The LoopEvent union
+
+| Group | Event | When | Payload (beyond the envelope) |
+| --- | --- | --- | --- |
+| Lifecycle | `phase-start` | a phase begins, before its first token | — |
+| Lifecycle | `verdict` | the Verify agent returns | `{ ok, impossible, reason }` |
+| Lifecycle | `exit` | terminal — the stream completes after it | `{ exit, rounds, usd }` |
+| Content | `text` | one coalesced text event per step | `{ text, partial? }` |
+| Content | `text-delta` | character-level, live | `{ text }` — stream-only, never journaled |
+| Content | `reasoning` | thinking, per step | `{ text }` |
+| Content | `tool-call` | the agent invokes a tool | `{ toolCallId, toolName, input }` |
+| Content | `tool-result` | a tool returns | `{ toolCallId, output }` |
+| Meta | `cost` | per-step spend increment | `{ inputTokens, outputTokens, cachedInputTokens, usd }` |
+
+There is **no `unknown` member**: a consumer ignores `type`s it does not know, and raw
+executor output surfaces only as diagnostics under `run({ debug: true })`.
+
+## Ordering: liveness first, durability for transitions
+
+Two rules by kind:
+
+- **Observations** (`text`, `text-delta`, `reasoning`, `tool-call`, `tool-result`) fan out
+  first and are persisted alongside — liveness wins.
+- **State transitions** (`verdict`, `exit`) **commit to the Record first, then emit** — a
+  consumer never sees a verdict that is not yet durable.
+
+## Crash fidelity: `partial: true`
+
+`text-delta` is mirrored to a per-step scratch sidecar. On a clean step the coalesced
+`text` is journaled and the sidecar cleared; on a crash the partial is folded into the
+journal as `text { partial: true }` — whatever the agent actually produced is recorded,
+down to half a sentence — and the Round replays.
+
+## Iterating never throws
+
+The iterator is a view, not a driver: the engine self-drives whether or not you iterate,
+and breaking out **unsubscribes** — it does not cancel. Once the handle exists, every
+termination — API outage, budget cutoff, even cancellation — resolves the stream to a
+final `exit` event; `run.done()` resolves, never rejects. Only startup fails by throwing
+(`LoopBusy`, missing goal, malformed config) — see [definition.run](/api/run).
+
+## AgentEvent
+
+An [Agent run](/api/agent)'s stream is its own clean type: the content and `cost` events
+above over a bare `{ seq }` envelope, plus a terminal `exit` carrying an `AgentExit`.
+No `phase-start`, no `verdict`.

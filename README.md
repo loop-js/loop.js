@@ -56,6 +56,27 @@ missing piece: **an independent verdict**. The loop doesn't end because the work
 done; it ends because a separate judge, with its own permissions and its own model, says
 the bar is met — or because a declared guard fires. [Read more →](https://loop-js.mintlify.site/loop-engineering)
 
+## Why loop.js, not `/loop` or `/schedule`?
+
+Claude Code already loops: `/loop` re-runs a prompt (or lets the model pace itself toward a
+goal), and `/schedule` runs cloud agents on a cron. Both are the right tool for a developer
+driving their own session. They repeat **execution**; loop.js owns **convergence** — as a
+library you ship:
+
+- **Done is a verdict.** A separate, skeptical judge settles the loop; `/loop` stops when
+  the working model says so.
+- **State is on disk.** Every Round starts fresh and resumes from the Record; a `/loop`
+  lives and dies with its session.
+- **Overlap is safe.** The Lock's compare-and-set makes any trigger cadence safe — a
+  periodic schedule doubles as the crash watchdog.
+- **Budget is enforced.** Dollars, Rounds, and per-Round timeouts are step-granular guards
+  with their own exit codes.
+- **It's an API.** `Loop.define` / `loop.run` / typed events — embed the loop in your
+  product, not in your terminal.
+
+Same agents underneath (the Claude Agent SDK) — loop.js is the convergence machinery
+around them. [Full comparison →](https://loop-js.mintlify.site/why-loop-js)
+
 ## What a Round looks like
 
 ```

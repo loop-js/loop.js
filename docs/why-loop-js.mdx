@@ -1,0 +1,104 @@
+---
+title: "Why loop.js"
+description: "Claude Code already loops — /loop and /schedule. Use them for yourself; use loop.js when the loop is a system you ship."
+---
+
+Claude Code ships two ways to make an agent repeat, right in the terminal:
+
+- **`/loop`** — re-run a prompt on an interval, or omit the interval and let the model pace
+  itself toward a goal.
+- **`/schedule`** — cloud agents (routines) that run on a cron schedule.
+
+For a developer driving their own session, both are the right tool: one line, zero setup,
+and you're watching the work happen. loop.js exists for the day the loop stops being
+something you *run* and becomes something you *ship* — a system with a bar to meet, a budget
+to respect, state to keep, and no human watching.
+
+The distinction in one sentence: **`/loop` and `/schedule` repeat execution; loop.js owns
+convergence.** Everything a loop needs to reach *done* — an independent verdict, durable
+state, declared guards, real scheduling — built into one npm package, driving the same
+Claude agents underneath.
+
+## Who says "done"?
+
+|  | `/loop` | `/schedule` | loop.js |
+| --- | --- | --- | --- |
+| Who judges "done" | the working model itself | each run ends when its agent stops | a separate, skeptical **Verify** agent — only its Verdict settles the Loop |
+| Where memory lives | the session's context window | carried by your prompt, run to run | on disk — Record, journal, handoff notes; every Round starts with fresh context |
+| Crash, restart, overlap | tied to the live session | fire-and-forget | the **Lock** (CAS + heartbeat): a live owner refuses overlap, a dead one is taken over |
+| Budget | — | — | total `usd` ledger with a step-granular cutoff, plus Rounds and per-Round timeout |
+| A finished goal, re-triggered | runs again | runs again | re-judged through the **Verify gate** — near-free while still ok, re-opens when stale |
+| Surface | a command inside Claude Code | a command inside Claude Code | a typed library — `Loop.define` / `loop.run`, an event stream, CLI exit codes |
+
+## What the convergence machinery buys you
+
+<CardGroup cols={2}>
+  <Card title="Only a verdict settles" icon="gavel" href="/concepts/loop">
+    A separate Verify agent — its own model, read-only permissions — judges every Round.
+    Rounds, dollars, and timeouts are guards, never a definition of done.
+  </Card>
+  <Card title="State on disk" icon="database" href="/concepts/loop">
+    Fresh context every Round; memory read back from the Workspace. The loop survives
+    crashes, restarts, and weeks on a schedule — it's as durable as your filesystem.
+  </Card>
+  <Card title="Declared guards" icon="shield" href="/concepts/limits">
+    `rounds`, `usd`, and a per-Round `timeout` bound the loop. Every ending is a typed
+    Exit — a wrapper branches on exit codes, not on parsed output.
+  </Card>
+  <Card title="One writer per Workspace" icon="lock" href="/api/run">
+    `run()` claims the Lock atomically and throws `LoopBusy` at a live owner. Any Trigger
+    cadence is safe — a periodic schedule doubles as the crash watchdog.
+  </Card>
+  <Card title="Schedulers, not daemons" icon="clock" href="/cli/cron">
+    `loop cron` installs Entries into crontab, launchd, Task Scheduler, or Modal — and an
+    Entry declares its own lifetime: `--until settled` removes itself at the first settle.
+  </Card>
+  <Card title="A library you embed" icon="code" href="/api/events">
+    An async-iterable Run handle and a self-describing, replayable event stream. Put the
+    loop inside your product, not inside your terminal.
+  </Card>
+</CardGroup>
+
+## The same agents, judged
+
+loop.js is not a different agent — Execute and Verify run on the
+[Claude Agent SDK](https://docs.anthropic.com/en/api/agent-sdk), the engine behind Claude
+Code. What loop.js adds is the machinery around them:
+
+```ts
+import { Loop } from "@loop.js/core"
+
+const loop = Loop.define({
+  goal: "Make `bun test` pass on ./workspace/api",
+  verify: { model: "claude-haiku-4-5" }, // the judge runs cheaper, read-only
+  limits: { rounds: 10, usd: 5, timeout: "15m" },
+})
+
+const run = loop.run()
+for await (const e of run) {
+  if (e.type === "verdict") console.log(`round ${e.round}:`, e.ok, e.reason)
+}
+
+const exit = await run.done()
+// { settled: true, verdict } — the judge said so, not the worker
+```
+
+```sh
+loop cron add "*/30 * * * *" --until settled   # keeps trying, removes itself when the bar is met
+```
+
+## When to keep `/loop` and `/schedule`
+
+Honestly: often. Watching a refactor converge in your own session, re-checking a deploy
+every five minutes, a personal daily routine — an interactive command beats a framework.
+Reach for loop.js at the first of: the loop outlives your session, someone else (or cron)
+triggers it, money is on the line, or "done" must be *proven* rather than felt.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    From empty directory to a settled Goal.
+  </Card>
+  <Card title="What is loop engineering" icon="infinity" href="/loop-engineering">
+    The practice loop.js is built for — and where it stands in it.
+  </Card>
+</CardGroup>

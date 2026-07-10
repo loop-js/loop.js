@@ -12,7 +12,7 @@
     "groups": [
       {
         "group": "Get started",
-        "pages": ["index", "loop-engineering", "quickstart"]
+        "pages": ["index", "why-loop-js", "loop-engineering", "quickstart"]
       },
       {
         "group": "Concepts",
@@ -29,7 +29,14 @@
       },
       {
         "group": "API",
-        "pages": ["api/define", "api/run", "api/status"]
+        "pages": [
+          "api/define",
+          "api/run",
+          "api/status",
+          "api/agent",
+          "api/events",
+          "api/core"
+        ]
       }
     ]
   },
