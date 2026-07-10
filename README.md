@@ -253,7 +253,7 @@ influence. [Full comparison →](https://loop-js.mintlify.site/why-loop-js)
 
 ## Status
 
-`v0.1` beta. Shipping today: the engine (Rounds, verdicts, budgets, Lock, journal), the CLI
+`v0.2` beta. Shipping today: the engine (Rounds, verdicts, budgets, Lock, journal), the CLI
 (`run` / `status` / `cron` with local and Modal backends), and the Claude Agent SDK
 executor — tested at every boundary (Lock CAS, event ordering, crash-partial folding; 800+
 tests). Ahead of 1.0: sandbox-contained runs, a public executor interface, remote
