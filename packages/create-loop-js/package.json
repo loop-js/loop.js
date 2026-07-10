@@ -6,7 +6,9 @@
   "bin": {
     "create-loop-js": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run build"
@@ -20,11 +22,22 @@
   },
   "homepage": "https://loop-js.mintlify.site",
   "bugs": "https://github.com/loop-js/loop.js/issues",
-  "keywords": ["scaffold", "create", "loop-engineering", "agent", "agent-loop", "claude", "loop-js"],
+  "keywords": [
+    "scaffold",
+    "create",
+    "loop-engineering",
+    "agent",
+    "agent-loop",
+    "claude",
+    "loop-js"
+  ],
   "engines": {
     "node": ">=22.18.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
