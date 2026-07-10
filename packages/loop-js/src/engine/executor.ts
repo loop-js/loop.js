@@ -13,7 +13,7 @@
  * cannot reach an outcome throws an {@link Interruption} instead.
  */
 
-import type { ExecuteCtx, InterruptCause, Permissions, Phase, VerdictWire } from "../protocol.ts"
+import type { PromptCtx, InterruptCause, Permissions, Phase, VerdictWire } from "../protocol.ts"
 
 /** The provider's raw `stop_reason`, normalized. Provider vocabulary dies at the adapter. */
 export type TerminalReason = "done" | "length" | "context-full" | "refused" | "error"
@@ -60,7 +60,7 @@ export type ExecuteRequest = {
   goal: string
   /** The Execute prompt, already resolved to text (file/function collapsed by the engine). */
   prompt: string
-  ctx: ExecuteCtx
+  ctx: PromptCtx
   model?: string
   permissions?: Permissions
   /**

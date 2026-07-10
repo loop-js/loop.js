@@ -24,29 +24,35 @@ Only `goal` is required.
 
 | Field | Type | Default | Meaning |
 | ----- | ---- | ------- | ------- |
-| `goal` | `Prompt` | required | The set-once objective — injected into every Execute Round, and the bar Verify judges against when no `verify.prompt` is given. |
-| `execute` | `{ prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The Execute phase binding: what to work on, an optional model, an optional per-phase Permissions override. Prompt omitted → the Goal stands in. |
-| `verify` | `{ prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The Verify phase binding: the criteria, an optional model (the judge can run cheaper), an optional Permissions override. Prompt omitted → the Goal stands in. |
+| `goal` | `Prompt` | required | The set-once objective — injected into every Execute Round, and the bar Verify judges against when no verify prompt is given. |
+| `execute` | `Prompt \| { prompt?: Prompt; model?: string; permissions?: Permissions }` | — | What to work on. A bare Prompt is shorthand for `{ prompt }`; the object form adds an optional model and a per-phase Permissions override. Prompt omitted → the Goal stands in. |
+| `verify` | `Prompt \| { prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The success criteria. A bare Prompt is shorthand for `{ prompt }`; the object form adds an optional model (the judge can run cheaper) and a Permissions override. Prompt omitted → the Goal stands in. |
 | `limits` | `Limits` | see below | Runaway guards plus the per-Round timeout. |
 | `permissions` | `Permissions` | — | The loop-level Permissions — raises both phases at once (e.g. `"bypass"` for a contained Run). Per-phase overrides win. |
 | `workspace` | `string` | `"./workspace"` | Points the work tree elsewhere. |
 
+<Note>
+  `{ file }` next to a binding key (`{ file: "./verify.md", model: "…" }`) is refused with
+  a teaching error at startup — write `{ prompt: { file }, model }`.
+</Note>
+
 ## Prompt
 
-The judgment-bearing text you own — one shape for its three homes (`goal`, `execute.prompt`,
-`verify.prompt`):
+The judgment-bearing text you own — one shape for its three homes (`goal`, `execute`,
+`verify`):
 
 ```ts
-type Prompt = string | { file: string } | ((ctx: ExecuteCtx) => string | Promise<string>)
+type Prompt = string | { file: string } | ((ctx: PromptCtx) => string | Promise<string>)
 ```
 
 - **Literal string** — never touches disk.
 - **`{ file }`** — re-read fresh at each Round start, so a mid-loop edit retargets from the
   next Round. Missing or unreadable is a loud error naming the path, never a silent literal.
-- **Function** — called per Round with the deliberately starved `ExecuteCtx`:
+- **Function** — called per Round with the deliberately starved `PromptCtx`:
   `{ round, previous? }`. `round` is 1-based across the whole Loop; `previous` (absent only
   when nothing precedes) always carries `feedback: string`, plus `verdict` iff the last
-  Round produced one.
+  Round produced one. Every function-form Prompt receives the same ctx, whichever home it
+  lives in.
 
 ## Limits
 

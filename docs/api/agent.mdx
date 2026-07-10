@@ -33,7 +33,7 @@ Only `goal` is required.
 | Field | Type | Default | Meaning |
 | ----- | ---- | ------- | ------- |
 | `goal` | `Prompt` | required | The objective — same [Prompt shape](/api/define#prompt) as a Loop's. |
-| `execute` | `{ prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The Execute binding. Prompt omitted → the Goal stands in. |
+| `execute` | `Prompt \| { prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The Execute binding — a bare Prompt is shorthand for `{ prompt }`. Prompt omitted → the Goal stands in. |
 | `limits` | `AgentLimits` | `usd: 1`, `timeout: "5m"` | `usd` and `timeout` only — no convergence, so no `rounds`. |
 | `permissions` | `Permissions` | `"auto"` | Same [Permissions values](/api/define#permissions) as a Loop's Execute phase. |
 | `workspace` | `string` | `"./workspace"` | Points the work tree elsewhere. |

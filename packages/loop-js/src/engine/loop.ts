@@ -17,7 +17,7 @@
 import { rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 import type {
-  ExecuteCtx,
+  PromptCtx,
   Exit,
   InterruptCause,
   LoopConfig,
@@ -43,9 +43,9 @@ import { Journal, readJournal } from "./journal.ts"
 import { decideClaim, Lock } from "./lock.ts"
 import { resolvePaths, type LoopPaths } from "./paths.ts"
 import { persist, roundNotes } from "./persist.ts"
-import { isPrompt } from "./prompt.ts"
+import { isPrompt, phaseSpec } from "./prompt.ts"
 import { commitRecord, freshRecord, readRecord, writeRecord, type Record } from "./record.ts"
-import { readNote, runRound, runVerify, Transcript, type RoundCtx, type RoundProgress } from "./round.ts"
+import { readNote, runRound, runVerify, Transcript, type EngineConfig, type RoundCtx, type RoundProgress } from "./round.ts"
 import { RunStream } from "./stream.ts"
 
 /** A deadline as given: epoch ms, a Date, or a Duration read as "this long from now". */
@@ -74,7 +74,7 @@ const MID_ROUND = new Set<InterruptCause>(["budget", "cancel", "error"])
  * the interrupted attempt leaves it — there is no Verdict to carry. Otherwise the previous
  * Round's Verdict speaks.
  */
-function buildCtx(round: number, rec: Record, firstOfRun: boolean): ExecuteCtx {
+function buildCtx(round: number, rec: Record, firstOfRun: boolean): PromptCtx {
   const le = rec.lastExit
   if (firstOfRun && le && le.settled === false && MID_ROUND.has(le.cause)) {
     return { round, previous: { feedback: le.reason } } // a Round-1 replay has a predecessor attempt too
@@ -95,7 +95,12 @@ export function define(config: LoopConfig, executor: Executor = claudeExecutor()
   return {
     run(options: RunOptions = {}): Run {
       if (!isPrompt(config.goal)) throw new Error("loop: `goal` is required — a string, { file }, or (ctx) => string")
-      // Both throw their teaching error here, before any Lock is claimed.
+      // All of these throw their teaching error here, before any Lock is claimed.
+      const cfg: EngineConfig = {
+        ...config,
+        execute: phaseSpec(config.execute, "execute"),
+        verify: phaseSpec(config.verify, "verify"),
+      }
       const timeout = durationSeconds(config.limits?.timeout ?? DEFAULT_TIMEOUT_SECONDS)
       const deadline = options.deadline !== undefined ? toMs(options.deadline) : undefined
       const paths = resolvePaths(process.cwd(), config.workspace)
@@ -149,7 +154,7 @@ export function define(config: LoopConfig, executor: Executor = claudeExecutor()
         const budget: Budget = { spent: record.cost.usd, cap }
         const guards: Guards = { cancel, controller: new AbortController(), budget, runDeadline: deadline }
         const roundCtx: RoundCtx = {
-          config,
+          config: cfg,
           executor,
           paths,
           journal,
@@ -212,7 +217,7 @@ export function define(config: LoopConfig, executor: Executor = claudeExecutor()
 
             const round = record.cursor + 1
             exitRound = round
-            const ctx: ExecuteCtx =
+            const ctx: PromptCtx =
               gate && roundsThisRun === 0
                 ? { round, previous: { feedback: gate.reason, verdict: gate } }
                 : buildCtx(round, record, roundsThisRun === 0)

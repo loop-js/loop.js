@@ -4,7 +4,7 @@
  * executor?)` mirrors the Loop's constructor; the run drives its one phase through guard.ts.
  */
 
-import type { AgentConfig, AgentEvent, AgentExit, ExecuteCtx } from "../protocol.ts"
+import type { AgentConfig, AgentEvent, AgentExit, PromptCtx } from "../protocol.ts"
 import type { AgentDefinition, AgentRun, AgentRunOptions, AgentStatic } from "../api.ts"
 import { durationSeconds } from "../duration.ts"
 import { claudeExecutor } from "./claude.ts"
@@ -12,7 +12,7 @@ import { DEFAULT_TIMEOUT_SECONDS, DEFAULT_USD, resolvePermissions } from "./conf
 import { Interruption, type Executor, type ExecutorEvent } from "./executor.ts"
 import { drivePhase, errorMessage, forwardAbort, withErrorCap, type Budget, type Guards } from "./guard.ts"
 import { resolvePaths } from "./paths.ts"
-import { isPrompt, resolvePhasePrompt, resolvePrompt } from "./prompt.ts"
+import { isPrompt, phaseSpec, resolvePhasePrompt, resolvePrompt } from "./prompt.ts"
 import { RunStream } from "./stream.ts"
 
 function mapAgentEvent(ev: ExecutorEvent, seq: number): AgentEvent {
@@ -43,6 +43,7 @@ export function define(config: AgentConfig, executor: Executor = claudeExecutor(
   return {
     run(options: AgentRunOptions = {}): AgentRun {
       if (!isPrompt(config.goal)) throw new Error("agent: `goal` is required — a string, { file }, or (ctx) => string")
+      const execute = phaseSpec(config.execute, "execute") // its teaching error throws here, before any work
       const paths = resolvePaths(process.cwd(), config.workspace)
 
       const runController = new AbortController()
@@ -62,16 +63,16 @@ export function define(config: AgentConfig, executor: Executor = claudeExecutor(
 
       const drive = async (): Promise<void> => {
         try {
-          const ctx: ExecuteCtx = { round: 1 }
+          const ctx: PromptCtx = { round: 1 }
           const out = await withErrorCap(guards, timeout, async () => {
             const goal = await resolvePrompt(config.goal, ctx, paths.root)
-            const prompt = await resolvePhasePrompt(config.execute?.prompt, goal, ctx, paths.root)
+            const prompt = await resolvePhasePrompt(execute.prompt, goal, ctx, paths.root)
             const session = executor.startRound({
               goal,
               prompt,
               ctx,
-              model: config.execute?.model,
-              permissions: resolvePermissions("execute", config.execute?.permissions, config.permissions),
+              model: execute.model,
+              permissions: resolvePermissions("execute", execute.permissions, config.permissions),
               // A bare run keeps no ledger before this Execute (ADR 0005): the first attempt is
               // handed the whole cap; an error retry hands over what its predecessor left.
               remainingUsd: budget.cap - budget.spent,

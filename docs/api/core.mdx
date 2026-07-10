@@ -32,8 +32,8 @@ The complete public surface of `@loop.js/core`. If it isn't on this page, it isn
 | Type | What it is | Reference |
 | --- | --- | --- |
 | `Prompt` | one shape, three homes: a literal, `{ file }`, or a per-round function | [Loop.define](/api/define#prompt) |
-| `ExecuteCtx` | the deliberately starved per-round context a function Prompt receives | [Loop.define](/api/define#prompt) |
-| `ExecuteSpec` / `VerifySpec` | per-phase binding: `prompt?`, `model?`, `permissions?` | [Loop.define](/api/define#loopconfig) |
+| `PromptCtx` | the deliberately starved per-round context every function Prompt receives | [Loop.define](/api/define#prompt) |
+| `ExecuteSpec` / `VerifySpec` | per-phase binding: `prompt?`, `model?`, `permissions?` — a phase key also takes a bare Prompt as shorthand for `{ prompt }` | [Loop.define](/api/define#loopconfig) |
 | `Limits` | `rounds`, `usd`, `timeout` — every field optional | [Loop.define](/api/define#limits) |
 | `AgentLimits` | `usd` and `timeout` — no `rounds` | [Agent.define](/api/agent#agentconfig) |
 | `Permissions` | `"read" \| "auto" \| "bypass"`, resolved per phase | [Loop.define](/api/define#permissions) |

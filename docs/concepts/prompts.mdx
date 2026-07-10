@@ -1,6 +1,6 @@
 ---
 title: "Prompts"
-description: "One Prompt shape, three forms, three homes — goal, execute.prompt, verify.prompt"
+description: "One Prompt shape, three forms, three homes — goal, execute, verify"
 ---
 
 A **Prompt** is the judgment-bearing text you own. One shape, three forms:
@@ -11,24 +11,39 @@ A **Prompt** is the judgment-bearing text you own. One shape, three forms:
 
 ## Three homes
 
+Every home takes a Prompt directly:
+
 | Home | Role | If omitted |
 |---|---|---|
-| `goal` | the set-once objective, judged every Round | required |
-| `execute.prompt` | what to work on | the Goal stands in |
-| `verify.prompt` | the success criteria the Verify agent judges | the Goal stands in |
+| `goal` | what "done" means — the set-once objective, judged every Round | required |
+| `execute` | what to work on | the Goal stands in |
+| `verify` | the success criteria the Verify agent judges | the Goal stands in |
 
 ```ts
 import { Loop } from "@loop.js/core"
 
 export default Loop.define({
   goal: "Build a playable 2D platformer in ./game",
-  execute: { prompt: { file: "./execute.md" } },
-  verify:  { prompt: { file: "./verify.md" } },
+  execute: { file: "./execute.md" },
+  verify: "It builds, `bun test` passes, and the game boots to a controllable character",
 })
 ```
 
 Only `goal` is required — Goal-only is a first-class run mode. The framework ships no
 prompt generation: prompts are hand-authored or omitted.
+
+To bind a phase's **model** or **permissions**, use the object form — the bare Prompt is
+shorthand for its `prompt` field:
+
+```ts
+verify: { prompt: { file: "./verify.md" }, model: "claude-haiku-4-5" }
+```
+
+<Note>
+  `{ file }` next to a binding key (`{ file: "./verify.md", model: "…" }`) is ambiguous —
+  is it a Prompt or a binding? — and is refused with a teaching error at startup, never
+  guessed at. Write `{ prompt: { file }, model }`.
+</Note>
 
 Paths named in a prompt resolve inside the Workspace: with the default layout,
 `"./game"` means `workspace/game`.
@@ -47,8 +62,8 @@ silent fallback.
 
 ## Function prompts
 
-The function form receives a deliberately small per-round context — enough to vary the
-prompt, not a state channel:
+The function form receives `PromptCtx` — a deliberately small per-round context, the same
+for all three homes; enough to vary the prompt, not a state channel:
 
 ```ts
 goal: (ctx) =>

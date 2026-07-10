@@ -45,8 +45,9 @@ function packageJson(root: string): string {
   return JSON.stringify(pkg, null, 2) + "\n"
 }
 
-/** A goal-only, first-class config: only `goal` is live; every other knob is a commented
- * line carrying its engine default, so uncommenting is the whole edit (MVP §9). */
+/** A goal-only, first-class config: `goal` is the field to edit, `limits` spells out the
+ * tight engine defaults, every other knob is a commented line carrying its default, so
+ * uncommenting is the whole edit (MVP §9). */
 const CONFIG = `import { Loop } from "@loop.js/core"
 
 export default Loop.define({
@@ -54,9 +55,10 @@ export default Loop.define({
   // A prompt is a string, { file: "./goal.md" } (re-read fresh each Round), or (ctx) => string.
   goal: "Describe what to build and where, e.g. Build a playable 2D platformer in ./game.",
 
-  // Per-phase bindings — each phase takes its own prompt, model, and permissions.
-  // execute: { prompt: { file: "./execute.md" }, model: "claude-opus-4-8" },
-  // verify:  { prompt: { file: "./verify.md" },  model: "claude-haiku-4-5" }, // the judge; read-only by default
+  // What to work on / what "done" means — each takes a prompt directly, like goal.
+  // execute: { file: "./execute.md" },
+  // verify:  "The checks to run and the end-state that must hold", // the judge's bar; read-only by default
+  // …or bind a model / permissions: verify: { prompt: { file: "./verify.md" }, model: "claude-haiku-4-5" },
 
   limits: {
     rounds: 3, // runaway guard — Rounds across the whole Loop (engine default: 3)

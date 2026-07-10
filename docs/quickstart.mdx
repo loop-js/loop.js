@@ -22,8 +22,9 @@ export ANTHROPIC_API_KEY=sk-ant-…
 
 ## 2. State the Goal
 
-`loop.config.ts` is goal-only: `goal` is the field you edit, every other knob is a
-commented line already carrying its engine default.
+`loop.config.ts` is goal-only: `goal` is the field you edit; `limits` spells out the
+tight engine defaults, and every other knob is a commented line already carrying its
+default.
 
 ```ts
 import { Loop } from "@loop.js/core"
@@ -41,18 +42,25 @@ export default Loop.define({
 Make the Goal *judgeable*: a testable end state beats a vibe. "The test suite passes and
 the README documents the new flag" gives Verify a bar; "improve the code" does not.
 
+When the bar deserves its own text, hand the judge one — `verify` takes a prompt exactly
+like `goal` (a string, `{ file: "./verify.md" }`, or a function):
+
+```ts
+verify: "`bun test` passes and the README documents the new flag",
+```
+
 ## 3. Run
 
 ```sh
-loop run
+npx loop run
 ```
 
 Rounds stream by until the Loop settles or a guard fires — the exit code says which. Check
 on it any time, from any shell:
 
 ```sh
-loop status          # human-readable snapshot
-loop status --json   # for machines
+npx loop status          # human-readable snapshot
+npx loop status --json   # for machines
 ```
 
 ## 4. Schedule it (optional)
@@ -60,8 +68,8 @@ loop status --json   # for machines
 Let a real scheduler re-trigger the loop instead of babysitting it:
 
 ```sh
-loop cron add "0 8 * * *" --until settled                  # local: crontab / launchd / Task Scheduler
-loop cron add "0 8 * * *" --until settled --backend modal  # same, in the cloud — Modal fires a Runner per tick
+npx loop cron add "0 8 * * *" --until settled                  # local: crontab / launchd / Task Scheduler
+npx loop cron add "0 8 * * *" --until settled --backend modal  # same, in the cloud — Modal fires a Runner per tick
 ```
 
 The Entry runs `loop run` in this directory every morning and removes itself at the first

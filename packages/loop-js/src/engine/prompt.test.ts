@@ -2,8 +2,8 @@ import { afterEach, beforeEach, expect, test } from "bun:test"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import type { ExecuteCtx } from "../protocol.ts"
-import { isPrompt, resolvePhasePrompt, resolvePrompt } from "./prompt.ts"
+import type { PromptCtx } from "../protocol.ts"
+import { isPrompt, phaseSpec, resolvePhasePrompt, resolvePrompt } from "./prompt.ts"
 
 let root: string
 beforeEach(async () => {
@@ -13,7 +13,7 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true })
 })
 
-const ctx: ExecuteCtx = { round: 2, previous: { feedback: "missing tests" } }
+const ctx: PromptCtx = { round: 2, previous: { feedback: "missing tests" } }
 
 test("a literal string is the text itself", async () => {
   expect(await resolvePrompt("do the thing", ctx, root)).toBe("do the thing")
@@ -48,13 +48,32 @@ test("a missing { file } throws loudly, naming the path — never a silent liter
 })
 
 test("a function receives the per-round ctx", async () => {
-  const prompt = (c: ExecuteCtx) => `round ${c.round}: fix ${c.previous?.feedback}`
+  const prompt = (c: PromptCtx) => `round ${c.round}: fix ${c.previous?.feedback}`
   expect(await resolvePrompt(prompt, ctx, root)).toBe("round 2: fix missing tests")
 })
 
 test("resolvePhasePrompt: an omitted phase prompt falls back to the resolved goal", async () => {
   expect(await resolvePhasePrompt(undefined, "the goal text", ctx, root)).toBe("the goal text")
   expect(await resolvePhasePrompt("own prompt", "the goal text", ctx, root)).toBe("own prompt")
+})
+
+test("phaseSpec: a bare Prompt is shorthand for { prompt } — all three forms", () => {
+  expect(phaseSpec("the criteria", "verify")).toEqual({ prompt: "the criteria" })
+  expect(phaseSpec({ file: "./verify.md" }, "verify")).toEqual({ prompt: { file: "./verify.md" } })
+  const fn = (c: PromptCtx) => `round ${c.round}`
+  expect(phaseSpec(fn, "execute")).toEqual({ prompt: fn })
+})
+
+test("phaseSpec: a spec object passes through; undefined is the empty spec", () => {
+  const spec = { prompt: { file: "./verify.md" }, model: "m", permissions: "auto" as const }
+  expect(phaseSpec(spec, "verify")).toBe(spec)
+  expect(phaseSpec(undefined, "execute")).toEqual({})
+})
+
+test("phaseSpec: { file } next to another key is refused with a teaching error", () => {
+  expect(() => phaseSpec({ file: "./verify.md", model: "m" } as never, "verify")).toThrow(
+    /`verify` mixes the \{ file \} prompt shorthand/,
+  )
 })
 
 test("isPrompt accepts the three forms and rejects the rest", () => {

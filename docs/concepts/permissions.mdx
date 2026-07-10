@@ -1,6 +1,6 @@
 ---
 title: "Permissions"
-description: "Per-phase tool gating: read, auto, bypass — the judge cannot touch the work tree"
+description: "Per-phase tool gating: read, auto, bypass — the worker edits, the judge reads"
 ---
 
 An unattended loop cannot pause to ask permission, so loop.js gates tool calls with
@@ -16,9 +16,10 @@ An unattended loop cannot pause to ask permission, so loop.js gates tool calls w
 
 - **Execute defaults to `"auto"`** — the worker writing State into its own Workspace needs
   no gate; what escapes the work tree does.
-- **Verify defaults to `"read"`** — the judge cannot modify the work tree. This is
-  **enforced by the adapter** — the write tools are denied — not by prompt discipline: no
-  phrasing in a prompt can talk the judge into doing the worker's job.
+- **Verify defaults to `"read"`** — the judge's write tools are denied **at the adapter**,
+  not by prompt discipline: no phrasing in a prompt can hand the judge a Write tool. Honest
+  limit: shell output redirection closes only with the Sandbox's read-only mount, which
+  lands after 1.0 — tool-level denial is the boundary today.
 
 <Note>
   A bar whose judge must write probes opts in explicitly:

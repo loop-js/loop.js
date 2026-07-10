@@ -14,7 +14,7 @@ export type {
   AgentLimits,
   CostPayload,
   EventEnvelope,
-  ExecuteCtx,
+  PromptCtx,
   ExecuteSpec,
   Exit,
   InterruptCause,

@@ -18,10 +18,11 @@ something you *run* and becomes something you *ship* — a system with a bar to 
 budget to respect, state to keep, and no human watching.
 
 The distinction in one sentence: **`/goal`, `/loop`, and `/schedule` are commands inside
-Claude Code; loop.js is the same convergence machinery as an API — `Loop.define` /
-`loop.run` / typed events, embedded in your product instead of your terminal.** Everything
-a loop needs to reach *done* — an independent verdict, durable state, declared guards, real
-scheduling — in one npm package, driving the same Claude agents underneath.
+Claude Code; loop.js is the same convergence discipline as a framework — a typed engine
+you run from any terminal, install on a schedule, or embed via `Loop.define` / `loop.run` /
+typed events.** Everything a loop needs to reach *done* — an independent verdict, durable
+state, declared guards, real scheduling — in one npm package, driving the same Claude
+agents underneath.
 
 ## What each owns
 
@@ -52,8 +53,8 @@ The differences, side by side:
     Rounds, dollars, and timeouts are guards, never a definition of done.
   </Card>
   <Card title="State on disk" icon="database" href="/concepts/loop">
-    Fresh context every Round; memory read back from the Workspace. The loop survives
-    crashes, restarts, and weeks on a schedule — it's as durable as your filesystem.
+    Fresh context every Round; memory read back from disk. The loop survives crashes,
+    restarts, and weeks on a schedule — it's as durable as your filesystem.
   </Card>
   <Card title="Declared guards" icon="shield" href="/concepts/limits">
     `rounds`, `usd`, and a per-Round `timeout` bound the loop. Every ending is a typed
@@ -67,23 +68,23 @@ The differences, side by side:
     `loop cron` installs Entries into crontab, launchd, Task Scheduler, or Modal — and an
     Entry declares its own lifetime: `--until settled` removes itself at the first settle.
   </Card>
-  <Card title="A library you embed" icon="code" href="/api/events">
-    An async-iterable Run handle and a self-describing, replayable event stream. Put the
-    loop inside your product, not inside your terminal.
+  <Card title="Embed it, too" icon="code" href="/api/events">
+    An async-iterable Run handle and a self-describing, replayable event stream — the same
+    engine the CLI drives, as a typed library inside your product.
   </Card>
 </CardGroup>
 
 ## The same agents, judged
 
 loop.js is not a different agent — Execute and Verify run on the
-[Claude Agent SDK](https://docs.anthropic.com/en/api/agent-sdk), the engine behind Claude
+[Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk), the engine behind Claude
 Code. What loop.js adds is the machinery around them:
 
 ```ts
 import { Loop } from "@loop.js/core"
 
 const loop = Loop.define({
-  goal: "Make `bun test` pass on ./workspace/api",
+  goal: "Make `bun test` pass on ./api",
   verify: { model: "claude-haiku-4-5" }, // the judge runs cheaper, read-only
   limits: { rounds: 10, usd: 5, timeout: "15m" },
 })
@@ -98,7 +99,7 @@ const exit = await run.done()
 ```
 
 ```sh
-loop cron add "*/30 * * * *" --until settled   # keeps trying, removes itself when the bar is met
+npx loop cron add "*/30 * * * *" --until settled   # keeps trying, removes itself when the bar is met
 ```
 
 ## When to keep `/goal`, `/loop`, and `/schedule`

@@ -1,7 +1,7 @@
 {
   "name": "@loop.js/create",
-  "version": "0.1.0-beta",
-  "description": "Scaffold a loop.js project (config + workspace/ + .loop/). Its separateness is imposed by the `npm create` convention.",
+  "version": "0.2.0-beta",
+  "description": "Scaffold a loop.js project (config + workspace/). Its separateness is imposed by the `npm create` convention.",
   "type": "module",
   "bin": {
     "create-loop-js": "dist/index.js"

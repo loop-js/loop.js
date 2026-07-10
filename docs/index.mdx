@@ -1,21 +1,23 @@
 ---
 title: "What is loop.js"
-description: "The agent loop as an API — embed it in your product, not in your terminal"
+description: "Loop.js is the framework for loop engineering — state a goal, the engine drives judged Rounds until an independent verdict settles it"
 ---
 
-**The agent loop as an API — embed it in your product, not in your terminal.**
+**Loop.js is the framework for loop engineering.**
 
-`Loop.define` / `loop.run` / typed events. You state a **Goal**; the engine drives
-**Rounds** — an Execute agent works, then a separate, skeptical **Verify** agent judges the
-result against the bar — until the Goal **settles**. Only that verdict, never the worker's
-own claim, ends the loop.
+You state a **Goal** and what "done" means. The engine drives **Rounds** — an Execute agent
+works with fresh context, then a separate, skeptical **Verify** agent judges the result
+against the bar — until the Goal **settles**. Only that verdict, never the worker's own
+claim, ends the loop. Run it from a terminal, put it on a schedule, or embed it in a
+product: same engine, same guarantees.
 
 ```ts
 import { Loop } from "@loop.js/core"
 
 const loop = Loop.define({
-  goal: "Build a playable 2D platformer in ./game",
-  limits: { rounds: 10, usd: 5 },
+  goal: "A playable 2D platformer lives in ./game",
+  verify: "It builds clean, `bun test` passes, and the game boots to a controllable character",
+  limits: { rounds: 20, usd: 10 },
 })
 
 const run = loop.run()                        // self-drives; iterate to observe
@@ -24,19 +26,19 @@ for await (const e of run) {
 }
 
 const exit = await run.done()
-// { settled: true, verdict } — a judge said done, not the worker
+// { settled: true, verdict } — the judge said done, not the worker
 ```
 
 ## What's in the box
 
 | | |
 | --- | --- |
-| **An API** | `Loop.define` / `loop.run` / a typed [event stream](/api/events) — plus a thin [CLI](/cli/run) over the same engine |
+| **A judged loop** | state a Goal, get Rounds driven to a settle — from the [CLI](/cli/run), a schedule, or the typed API (`Loop.define` / `loop.run` / an [event stream](/api/events)) |
 | **A separate judge** | a read-only [Verify agent](/concepts/loop) judges every Round; only its verdict settles the Loop |
-| **State on disk** | fresh context every Round, memory read back from the Workspace — survives crashes and schedules |
-| **Declared guards** | [`rounds` / `usd` / `timeout`](/concepts/limits); every ending is a typed Exit with its own exit code |
+| **State on disk** | fresh context every Round, memory read back from disk — survives crashes and schedules |
+| **Declared guards** | [`rounds` / `usd` / `timeout`](/concepts/limits) — tight by default; every ending is a typed Exit with its own exit code |
 | **One writer** | the Lock (compare-and-set + heartbeat) makes any trigger cadence overlap-safe |
-| **Real schedulers** | [`loop cron`](/cli/cron) installs into crontab / launchd / Task Scheduler — or **Modal** in the cloud |
+| **Real schedulers** | [`loop cron`](/cli/cron) installs into crontab / launchd / Task Scheduler — or **Modal** in the cloud; no daemon, ever |
 
 ## One Round, four beats
 
@@ -54,8 +56,8 @@ guards: they end a Run, they never mean "done".
 ## Why writer ≠ grader
 
 An agent grading its own work passes it. loop.js separates the roles structurally: Verify
-runs with its own prompt, its own (cheaper, if you like) model, and read-only permissions —
-enforced by the runtime, not by prompt discipline. It reads the Execute agent's handoff
+runs with its own prompt, its own (cheaper, if you like) model, and read-only by default —
+the write tools are denied at the adapter, not by prompt discipline. It reads the Execute agent's handoff
 digest first and escalates only when suspicious: inspecting the work tree, running the
 build, checking the transcript.
 
@@ -70,7 +72,7 @@ disk, so the loop is exactly as durable as your filesystem.
   <Card title="Quickstart" icon="rocket" href="/quickstart">
     Scaffold a project and drive your first Goal to settled.
   </Card>
-  <Card title="Why loop.js" icon="scale-balanced" href="/why-loop-js">
-    Claude Code already has `/goal`, `/loop`, and `/schedule` — when do you need more?
+  <Card title="What is loop engineering" icon="infinity" href="/loop-engineering">
+    The practice loop.js is built for — and where it stands in it.
   </Card>
 </CardGroup>

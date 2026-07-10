@@ -25,7 +25,7 @@ export type Verdict =
 /**
  * The flat double-bool shape the `verdict` event carries on the wire. `impossible` is
  * always present (false when `ok`); the engine narrows this to the {@link Verdict} union
- * for the domain (Exit, ExecuteCtx). See MVP.md §3.
+ * for the domain (Exit, PromptCtx). See MVP.md §3.
  */
 export type VerdictWire = { ok: boolean; impossible: boolean; reason: string }
 
@@ -67,11 +67,13 @@ export type LoopStatus = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ExecuteCtx — the deliberately starved per-round context (MVP.md §3)
+// PromptCtx — the deliberately starved per-round context (MVP.md §3)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** For varying the prompt, not wiring the injection. The cursor lives on disk. */
-export type ExecuteCtx = {
+/** What every function-form {@link Prompt} receives — the same ctx for all three homes
+ * (`goal`, `execute`, `verify`). For varying the prompt, not wiring the injection: the
+ * cursor lives on disk. */
+export type PromptCtx = {
   /** 1-based, whole-Loop count. */
   round: number
   /** Undefined only when nothing precedes — Round 1 with no interrupted attempt before it. */
@@ -185,25 +187,26 @@ export type AgentLimits = {
 
 /**
  * A Prompt — the judgment-bearing text a user owns, one shape for its three homes (`goal`,
- * `execute.prompt`, `verify.prompt`):
+ * `execute`, `verify`):
  * - a literal string — never touches disk;
  * - `{ file }` — re-read fresh at each Round start, so a mid-loop edit retargets from the next
  *   Round; missing/unreadable ⇒ a loud error naming the path, never a silent literal;
- * - a per-round function of the (deliberately starved) {@link ExecuteCtx}.
+ * - a per-round function of the (deliberately starved) {@link PromptCtx}.
  * A phase prompt omitted → the Goal stands in.
  */
-export type Prompt = string | { file: string } | ((ctx: ExecuteCtx) => string | Promise<string>)
+export type Prompt = string | { file: string } | ((ctx: PromptCtx) => string | Promise<string>)
 
 /** Per-phase Executor binding: a prompt plus an optional model (the judge can run cheaper) and
- * an optional Permissions override (e.g. a probe-writing bar opts Verify up to `auto`). */
+ * an optional Permissions override (e.g. a probe-writing bar opts Verify up to `auto`). A phase
+ * key also takes a bare {@link Prompt} — shorthand for `{ prompt }` (prompt.ts `phaseSpec`). */
 export type ExecuteSpec = { prompt?: Prompt; model?: string; permissions?: Permissions }
 export type VerifySpec = { prompt?: Prompt; model?: string; permissions?: Permissions }
 
 /** The Loop definition input (`loop.config.ts`). Only `goal` is required. */
 export type LoopConfig = {
   goal: Prompt
-  execute?: ExecuteSpec
-  verify?: VerifySpec
+  execute?: Prompt | ExecuteSpec
+  verify?: Prompt | VerifySpec
   limits?: Limits
   /** The loop-level Permissions — raises both phases at once (e.g. `bypass` for a contained
    *  Run). Per-phase overrides win; omitted everywhere, execute is `auto` and verify `read`. */
@@ -215,7 +218,7 @@ export type LoopConfig = {
 /** The Agent definition input: the Loop core minus convergence (no `verify`, no `rounds`). */
 export type AgentConfig = {
   goal: Prompt
-  execute?: ExecuteSpec
+  execute?: Prompt | ExecuteSpec
   limits?: AgentLimits
   permissions?: Permissions
   workspace?: string

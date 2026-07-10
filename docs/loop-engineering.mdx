@@ -6,9 +6,10 @@ description: "Designing the system that prompts an agent — and where loop.js f
 **Loop engineering** is the practice of designing the system that prompts an AI agent —
 instead of prompting it turn by turn. You define a goal, a way for the agent to find and do
 work, a way to verify the result, and a stop condition; the loop does the iterating. The
-term spread in mid-2026, after Claude Code's creator described his own workflow as "loops
-that prompt Claude" — by then coding agents were reliable enough at long-horizon work that
-the scarce skill had moved from writing prompts to designing the system that writes them.
+term took hold in mid-2026 — Claude Code's creator Boris Cherny put it as "I no longer
+prompt Claude; loops prompt Claude" — by then coding agents were reliable enough at
+long-horizon work that the scarce skill had moved from writing prompts to designing the
+system that writes them.
 
 ## The elements of a loop
 
@@ -48,7 +49,8 @@ core insight (fresh context per iteration, state on disk). What loop.js adds is 
 ```sh
 npm create @loop.js@latest my-loop
 cd my-loop && npm install
-loop run
+export ANTHROPIC_API_KEY=sk-ant-…
+npx loop run
 ```
 
 <Card title="Quickstart" icon="rocket" href="/quickstart">

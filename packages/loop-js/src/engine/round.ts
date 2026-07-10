@@ -20,7 +20,7 @@
 
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, resolve } from "node:path"
-import type { ExecuteCtx, Exit, LoopConfig, LoopEvent, Phase, Verdict, VerdictWire } from "../protocol.ts"
+import type { ExecuteSpec, Exit, LoopConfig, LoopEvent, Phase, PromptCtx, Verdict, VerdictWire, VerifySpec } from "../protocol.ts"
 import { resolvePermissions } from "./config.ts"
 import { resolvePhasePrompt, resolvePrompt } from "./prompt.ts"
 import { Interruption, type Executor, type ExecutorEvent, type RoundSession } from "./executor.ts"
@@ -47,10 +47,17 @@ export class Transcript {
   }
 }
 
+/** LoopConfig with the Prompt shorthand already normalized to specs (prompt.ts `phaseSpec`) —
+ * what the engine reads. The `Prompt | Spec` union exists only at the authoring surface. */
+export type EngineConfig = Omit<LoopConfig, "execute" | "verify"> & {
+  execute?: ExecuteSpec
+  verify?: VerifySpec
+}
+
 /** The Run's fixed wiring a Round drives through — built once per Run, never reshaped by the
  * Round. `guards` carries the guard machine's own running state (guard.ts owns it). */
 export type RoundCtx = {
-  config: LoopConfig
+  config: EngineConfig
   executor: Executor
   paths: LoopPaths
   journal: Journal
@@ -186,7 +193,7 @@ export async function readNote(root: string, path: string): Promise<string> {
  * never blindly re-run — the caller then hands in the latest handoff note as the digest.
  * Every throw leaves as an {@link Interruption} carrying phase `verify`.
  */
-export async function runVerify(roundCtx: RoundCtx, round: number, ctx: ExecuteCtx, digest: string): Promise<Verdict> {
+export async function runVerify(roundCtx: RoundCtx, round: number, ctx: PromptCtx, digest: string): Promise<Verdict> {
   const { config, executor, paths, guards } = roundCtx
   try {
     await emitPhaseStart(roundCtx, round, "verify")
@@ -219,7 +226,7 @@ export async function runVerify(roundCtx: RoundCtx, round: number, ctx: ExecuteC
 export async function runRound(
   roundCtx: RoundCtx,
   round: number,
-  ctx: ExecuteCtx,
+  ctx: PromptCtx,
   progress: RoundProgress,
 ): Promise<RoundResult> {
   const { config, executor, paths, guards } = roundCtx

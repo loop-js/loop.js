@@ -137,6 +137,12 @@ test("a verify function prompt receives the per-round ctx", async () => {
   expect(fake.verifyRequests[0]?.prompt).toBe("judge round 1")
 })
 
+test("a phase key takes a bare Prompt — shorthand for { prompt }", async () => {
+  const { fake } = await run([ok], { config: { execute: "work the plan", verify: "the bar to judge" } })
+  expect(fake.requests[0]?.prompt).toBe("work the plan")
+  expect(fake.verifyRequests[0]?.prompt).toBe("the bar to judge")
+})
+
 test("a missing { file } prompt is a loud `error` Exit naming the path — never a silent literal", async () => {
   const { exit } = await run([ok], { config: { execute: { prompt: { file: "./verfy.md" } } } })
   expect(exit).toMatchObject({ settled: false, cause: "error" })
