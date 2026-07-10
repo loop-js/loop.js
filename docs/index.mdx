@@ -1,0 +1,52 @@
+---
+title: "What is loop.js"
+description: "State a Goal; the engine drives Rounds until a skeptical Verify agent settles it"
+---
+
+loop.js is a thin, opinionated TypeScript runtime for autonomous agent loops. You state a
+**Goal**; the engine drives **Rounds** — an Execute agent works in the work tree, then a
+separate, skeptical **Verify** agent judges the result against the bar — until the Goal
+**settles**.
+
+```ts
+import { Loop } from "@loop.js/core"
+
+export default Loop.define({
+  goal: "Build a playable 2D platformer in ./game.",
+  limits: { rounds: 3, usd: 1 },
+})
+```
+
+## The shape of the loop
+
+Each Round is four beats:
+
+1. **Execute** — an agent works toward the Goal inside the work tree (`./workspace` by default).
+2. **Handoff** — the agent leaves a note for the next Round: what it did, what it believes is left.
+3. **Verify** — a separate agent, read-only by default, judges the work against the bar. Its
+   verdict is `ok`, or not-ok **with a mandatory reason**, or a give-up when the Goal can
+   never pass.
+4. **Persist** — the verdict and the Round's events land on disk (the Record and journal),
+   so the next Round — or a crash, or next week's scheduled run — picks up exactly here.
+
+Only a Verify verdict settles a Loop. Limits — Rounds, dollars, wall clock — are runaway
+guards: they end a Run, they never mean "done".
+
+## Why writer ≠ grader
+
+An agent grading its own work passes it. loop.js separates the roles structurally: Verify
+runs with its own prompt, its own (cheaper, if you like) model, and read-only permissions —
+enforced by the runtime, not by prompt discipline. It reads the Execute agent's handoff
+digest first and escalates only when suspicious: inspecting the work tree, running the
+build, checking the transcript.
+
+## No daemon
+
+loop.js runs nothing in the background. `loop run` drives Rounds in the foreground and
+exits; `loop cron` installs Entries into a real scheduler — crontab, launchd, Task
+Scheduler, or Modal — and a fired Entry simply runs `loop run` again. State lives on disk,
+so the loop is exactly as durable as your filesystem.
+
+<Card title="Quickstart" icon="rocket" href="/quickstart">
+  Scaffold a project and drive your first Goal to settled.
+</Card>

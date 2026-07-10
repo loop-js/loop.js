@@ -1,0 +1,33 @@
+# ci.yml — every push proves what the release needs proven — `bun run check`
+# (typecheck + protocol isolation), the full test suite, the tsc build, and that both packages
+# still pack. The cron backends' real-scheduler smoke lives in cron-smoke.yml (paths-filtered;
+# macOS/Windows minutes are 10×/2× on private repos).
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: npm pack --dry-run
+        working-directory: packages/loop-js
+      - run: npm pack --dry-run
+        working-directory: packages/create-loop-js

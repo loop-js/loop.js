@@ -1,0 +1,62 @@
+---
+title: "loop status"
+description: "One look at the Loop, read from disk: running? round, spend, last verdict + reason."
+---
+
+`loop status` is one snapshot of what has happened, read from disk. It starts no
+Run and claims no Lock — it is safe to call while another process owns the
+Workspace. A Loop that has never run shows the zero state, so once the config
+loads the command always exits `0`.
+
+```bash
+loop status             one look at the Loop: running? round, spend, last verdict + reason
+
+  --json                  print the LoopStatus snapshot as JSON, for wrappers
+```
+
+## Human output
+
+Four lines, at a glance:
+
+```bash
+$ loop status
+running: yes (pid 41250)
+round: 3
+spend: $1.42
+verdict: not met — the report is missing the summary section
+```
+
+| Line | Meaning |
+| ---- | ------- |
+| `running` | `yes (pid <n>)` while a process owns the Lock, else `no` |
+| `round` | the Round count so far |
+| `spend` | dollars spent, e.g. `$1.42` |
+| `verdict` | the last Verdict with its reason — `met`, `not met`, or `impossible`; `none` when the Loop has never been judged |
+
+## `--json`
+
+`--json` prints the `LoopStatus` snapshot itself — the same public read surface
+an embedding host calls:
+
+```bash
+$ loop status --json
+{
+  "running": false,
+  "round": 3,
+  "usd": 1.42,
+  "lastExit": { "settled": false, "cause": "rounds", "reason": "..." },
+  "verdicts": [
+    { "round": 3, "ok": false, "impossible": false, "reason": "..." }
+  ]
+}
+```
+
+`pid` is present only while the Loop is running. `lastExit` is how the last Run
+ended — `{ settled: true, verdict }` or `{ settled: false, cause, reason }` —
+and is `null` before the first Run completes. `verdicts` carries every Verdict
+so far, each tagged with its Round.
+
+## Exit codes
+
+`0` once the config loads — a never-run Loop is not an error. `1` when the
+config is missing or malformed, or on an unknown option.

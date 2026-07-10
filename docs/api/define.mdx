@@ -1,0 +1,73 @@
+---
+title: "Loop.define"
+description: "Define a Loop — a pure function that turns a LoopConfig into a LoopDefinition."
+---
+
+`Loop.define(config)` is a pure function: it does no I/O and claims nothing. It returns a
+`LoopDefinition` — the handle whose methods do the work:
+
+```ts
+import { Loop } from "@loop.js/core"
+
+const loop = Loop.define({
+  goal: { file: "GOAL.md" },
+  limits: { rounds: 5, usd: 2, timeout: "10m" },
+})
+
+const run = loop.run()             // claims the Lock and drives Rounds
+const status = await loop.status() // one snapshot read from disk
+```
+
+## LoopConfig
+
+Only `goal` is required.
+
+| Field | Type | Default | Meaning |
+| ----- | ---- | ------- | ------- |
+| `goal` | `Prompt` | required | The set-once objective — injected into every Execute Round, and the bar Verify judges against when no `verify.prompt` is given. |
+| `execute` | `{ prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The Execute phase binding: what to work on, an optional model, an optional per-phase Permissions override. Prompt omitted → the Goal stands in. |
+| `verify` | `{ prompt?: Prompt; model?: string; permissions?: Permissions }` | — | The Verify phase binding: the criteria, an optional model (the judge can run cheaper), an optional Permissions override. Prompt omitted → the Goal stands in. |
+| `limits` | `Limits` | see below | Runaway guards plus the per-Round timeout. |
+| `permissions` | `Permissions` | — | The loop-level Permissions — raises both phases at once (e.g. `"bypass"` for a contained Run). Per-phase overrides win. |
+| `workspace` | `string` | `"./workspace"` | Points the work tree elsewhere. |
+
+## Prompt
+
+The judgment-bearing text you own — one shape for its three homes (`goal`, `execute.prompt`,
+`verify.prompt`):
+
+```ts
+type Prompt = string | { file: string } | ((ctx: ExecuteCtx) => string | Promise<string>)
+```
+
+- **Literal string** — never touches disk.
+- **`{ file }`** — re-read fresh at each Round start, so a mid-loop edit retargets from the
+  next Round. Missing or unreadable is a loud error naming the path, never a silent literal.
+- **Function** — called per Round with the deliberately starved `ExecuteCtx`:
+  `{ round, previous? }`. `round` is 1-based across the whole Loop; `previous` (absent only
+  when nothing precedes) always carries `feedback: string`, plus `verdict` iff the last
+  Round produced one.
+
+## Limits
+
+Every field optional; omitted, each falls back to an engine default.
+
+| Field | Type | Default | Meaning |
+| ----- | ---- | ------- | ------- |
+| `rounds` | `number` | `3` | Rounds across the whole Loop (runaway guard). |
+| `usd` | `number` | `1` | Total $ across the whole Loop (step-granular cutoff). |
+| `timeout` | `number \| Duration` | `"5m"` | Per-Round wall-clock timeout. |
+
+Time values use the Duration grammar — a whole number with a unit: `"45s"`, `"90m"`,
+`"36h"`, `"7d"`. Fields typed `number | Duration` also read a bare number of seconds.
+
+## Permissions
+
+How tool calls are gated while no Sandbox contains the Run, resolved per phase:
+phase override > loop-level > phase default (execute `"auto"`, verify `"read"`).
+
+| Value | Meaning |
+| ----- | ------- |
+| `"read"` | Read tools plus sandboxed commands; the write tools are denied at the adapter. |
+| `"auto"` | Work-tree edits auto-approved, shell in the provider's command sandbox, the rest denied. |
+| `"bypass"` | Full autonomy, no gating — safe only inside a Sandbox. |

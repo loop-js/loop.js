@@ -1,0 +1,50 @@
+# cron-smoke.yml — first contact between the cron backends and the real schedulers they drive:
+# one add → list → remove roundtrip through the real `crontab` (ubuntu), `launchctl` (macos),
+# and `schtasks` (windows).
+#
+# Strictness is staged: ubuntu fails the build; macos/windows ride continue-on-error until their
+# first contact is observed green — promoting them to strict is the M1 "real-target validation"
+# item, alongside dropping their experimental label. The modal job never runs unattended: manual
+# dispatch only, and it skips itself without token secrets (MODAL_TOKEN_ID / MODAL_TOKEN_SECRET).
+name: cron-smoke
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "packages/loop-js/src/cli/cron/**"
+      - ".github/**"
+  workflow_dispatch:
+
+jobs:
+  local:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os != 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - if: runner.os == 'Linux'
+        run: command -v crontab || (sudo apt-get update && sudo apt-get install -y cron)
+      - run: bash .github/cron-smoke.sh packages/loop-js/src/cli/index.ts
+        shell: bash
+
+  modal:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: roundtrip against Modal (skips without token secrets)
+        if: env.MODAL_TOKEN_ID != ''
+        run: |
+          pip install modal
+          bash .github/cron-smoke.sh packages/loop-js/src/cli/index.ts --backend modal

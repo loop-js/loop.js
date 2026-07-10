@@ -1,0 +1,75 @@
+---
+title: "Quickstart"
+description: "From empty directory to a settled Goal"
+---
+
+## 1. Scaffold
+
+```sh
+npm create @loop.js@latest my-loop
+cd my-loop && npm install
+```
+
+This writes three things: a `package.json` depending on `@loop.js/core` (which provides the
+project-local `loop` bin), a `loop.config.ts`, and an empty `workspace/` — the work tree
+the agents build in.
+
+Agents run on the Claude Agent SDK, so set your key:
+
+```sh
+export ANTHROPIC_API_KEY=sk-ant-…
+```
+
+## 2. State the Goal
+
+`loop.config.ts` is goal-only: `goal` is the field you edit, every other knob is a
+commented line already carrying its engine default.
+
+```ts
+import { Loop } from "@loop.js/core"
+
+export default Loop.define({
+  goal: "Build a playable 2D platformer in ./game.",
+
+  limits: {
+    rounds: 3, // runaway guard — Rounds across the whole Loop
+    usd: 1,    // total $ across the whole Loop, step-granular cutoff
+  },
+})
+```
+
+Make the Goal *judgeable*: a testable end state beats a vibe. "The test suite passes and
+the README documents the new flag" gives Verify a bar; "improve the code" does not.
+
+## 3. Run
+
+```sh
+loop run
+```
+
+Rounds stream by until the Loop settles or a guard fires — the exit code says which. Check
+on it any time, from any shell:
+
+```sh
+loop status          # human-readable snapshot
+loop status --json   # for machines
+```
+
+## 4. Schedule it (optional)
+
+Let a real scheduler re-trigger the loop instead of babysitting it:
+
+```sh
+loop cron add "0 8 * * *" --until settled
+```
+
+The Entry runs `loop run` in this directory every morning and removes itself at the first
+settle — capped at 3 runs / 24 hours by default, in case it never does.
+
+## Where things live
+
+| Path             | What it is                                              |
+| ---------------- | ------------------------------------------------------- |
+| `workspace/`     | the work tree — everything the agents build             |
+| `.loop/`         | engine state: the Record, journal, lock                 |
+| `.handoff/`      | the per-Round notes that carry memory across Rounds     |

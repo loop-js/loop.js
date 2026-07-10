@@ -1,0 +1,57 @@
+---
+title: "loop run"
+description: "The local foreground Trigger: run the Loop in this project until it settles or a guard fires."
+---
+
+`loop run` is the foreground Trigger. It loads `loop.config.ts` from the current
+directory, claims the Lock, and drives Rounds until the Loop settles (the Verify
+agent's Verdict ends it — met or given up) or a guard stops the Run first. The
+`loop` bin is project-local, like `next dev` — run it from the project directory,
+never install it globally.
+
+loop.js runs no daemon. When this process ends, the Run has ended; the next
+Trigger resumes from the Record.
+
+```bash
+loop run                run the Loop in this project until a settle or a guard
+
+  -n <rounds>             cap this Run to <rounds> Rounds, then exit `yield`
+  --fresh                 ignore any prior Record and start over
+  --force                 stop a live owner (SIGINT, then SIGKILL) and take over its Lock
+```
+
+## Options
+
+**`-n <rounds>`** caps *this* Run only: after `<rounds>` Rounds it exits `yield`
+(exit code 0) with the Loop still live, ready for the next Trigger. The Loop-wide
+`limits.rounds` guard in the config is untouched and still wins if it fires first.
+
+```bash
+loop run -n 5     # at most 5 Rounds this Run, then exit yield
+```
+
+**`--fresh`** ignores any prior Record: the engine claims the Lock, then clears
+`workspace/`, `.loop/`, and `.handoff/`, so the Loop starts over at Round 1. A
+live owner still refuses it — `--fresh` never steals a running Loop.
+
+**`--force`** takes over the Lock from a live owner. It stops the owning process
+first — SIGINT (the clean `cancel` path, which flips the Record to stopped), then
+SIGKILL after a 10-second grace if it will not stop — and claims the Lock as a
+takeover. A stale claim needs no stopping; the takeover claim reaps it.
+
+## Exit codes
+
+The Run's terminal Exit maps to the process exit code, so a wrapper can branch
+without parsing output:
+
+| Code | Meaning |
+| ---- | ------- |
+| `0` | The Run ended the way it was asked to: the Verdict was met, or an `-n` slice ended in `yield` (Loop still live) |
+| `1` | Error — including startup failures: no config, a malformed one, or a live owner holding the Lock |
+| `2` | Gave up — settled on a Verdict the Loop could not meet (`impossible`) |
+| `3` | The budget guard fired |
+| `4` | The `limits.rounds` guard fired |
+| `130` | Cancelled — Ctrl+C (128 + SIGINT) |
+
+Ctrl+C is the `cancel` cause: the engine stops cleanly and the Record is flipped
+to stopped, so the next Trigger resumes where this Run left off.

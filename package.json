@@ -1,0 +1,18 @@
+{
+  "name": "loop-js-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "typecheck": "tsc -p packages/loop-js/tsconfig.json && tsc -p packages/create-loop-js/tsconfig.json",
+    "check:protocol": "tsc -p packages/loop-js/tsconfig.protocol.json",
+    "check": "bun run typecheck && bun run check:protocol",
+    "build": "tsc -p packages/loop-js/tsconfig.build.json && tsc -p packages/create-loop-js/tsconfig.build.json",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/bun": "latest",
+    "@types/node": "^24.0.0"
+  }
+}

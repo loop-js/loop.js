@@ -1,0 +1,68 @@
+---
+title: "Prompts"
+description: "One Prompt shape, three forms, three homes — goal, execute.prompt, verify.prompt"
+---
+
+A **Prompt** is the judgment-bearing text you own. One shape, three forms:
+
+- a **string literal** — never touches disk;
+- **`{ file: "./verify.md" }`** — re-read fresh at the start of every Round;
+- a **per-round function** `(ctx) => string` (sync or async).
+
+## Three homes
+
+| Home | Role | If omitted |
+|---|---|---|
+| `goal` | the set-once objective, judged every Round | required |
+| `execute.prompt` | what to work on | the Goal stands in |
+| `verify.prompt` | the success criteria the Verify agent judges | the Goal stands in |
+
+```ts
+import { Loop } from "@loop.js/core"
+
+export default Loop.define({
+  goal: "Build a playable 2D platformer in ./game",
+  execute: { prompt: { file: "./execute.md" } },
+  verify:  { prompt: { file: "./verify.md" } },
+})
+```
+
+Only `goal` is required — Goal-only is a first-class run mode. The framework ships no
+prompt generation: prompts are hand-authored or omitted.
+
+Paths named in a prompt resolve inside the Workspace: with the default layout,
+`"./game"` means `workspace/game`.
+
+## File prompts are re-read every Round
+
+`{ file }` is read fresh at the start of each Round. Edit the file while the Loop runs and
+the next Round works — and is judged — against the new text: editing `verify.md` mid-loop
+re-sets the bar. A missing or unreadable file is a loud error naming the path, never a
+silent fallback.
+
+<Note>
+  The Execute agent may itself author or revise `verify.md` — every edit is visible in the
+  event stream.
+</Note>
+
+## Function prompts
+
+The function form receives a deliberately small per-round context — enough to vary the
+prompt, not a state channel:
+
+```ts
+goal: (ctx) =>
+  ctx.previous
+    ? `Address the last verdict first: ${ctx.previous.feedback}`
+    : "Build a playable 2D platformer in ./game",
+```
+
+`ctx.round` is the 1-based Round number. `ctx.previous.feedback` carries what the last
+Round left behind — the Verdict's reason, or the engine's one-liner if the Round was
+interrupted; `ctx.previous.verdict` is present when a Verdict was produced.
+
+## Writing a good Verify bar
+
+A good bar names a **testable end-state**, the **checks to run**, and the **invariants
+that must hold**. A vaguer bar is judged conservatively: the skeptical Verify agent treats
+a claim as evidence, not proof, and insufficient evidence reads as not met.

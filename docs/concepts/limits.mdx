@@ -1,0 +1,59 @@
+---
+title: "Limits"
+description: "Runaway guards: rounds, usd, and the per-Round timeout"
+---
+
+Limits are **runaway guards, not the definition of done**. Only a Verdict settles a Loop;
+a limit ends one Run and leaves the Loop live to resume.
+
+```ts
+import { Loop } from "@loop.js/core"
+
+export default Loop.define({
+  goal: "Build a playable 2D platformer in ./game",
+  limits: {
+    rounds: 3,     // Rounds across the whole Loop (default: 3)
+    usd: 1,        // total $ across the whole Loop (default: 1)
+    timeout: "5m", // per-Round wall clock (default: "5m")
+  },
+})
+```
+
+Every field is optional. The defaults are deliberately tight — a first run stops cheap;
+raising them is the deliberate act.
+
+## The three guards
+
+- **`limits.rounds`** (default `3`) — Rounds across the whole Loop, checked between
+  Rounds. The Verdict is evaluated before the guard, so an `ok` on the final allowed Round
+  settles the Loop — it does not count as hitting the cap.
+- **`limits.usd`** (default `1`) — total dollars across the whole Loop, cut off at **step
+  granularity**: spend is checked as the agent streams, so overshoot is at most one step.
+- **`limits.timeout`** (default `"5m"`) — per-Round wall clock, armed as a timer that
+  aborts the Round — so it catches a silent hang, not only a busy-slow one.
+
+## Duration grammar
+
+Every time-valued config speaks one grammar: a whole number with a unit — `45s`, `90m`,
+`36h`, `7d`. `limits.timeout` also reads a bare number of seconds:
+
+```ts
+limits: { timeout: "90m" }   // or timeout: 300 — bare seconds
+```
+
+## What hitting a guard looks like
+
+A guard ends the Run **without settling the Loop**, and the exit says which guard fired:
+
+```ts
+const exit = await loop.run().done()
+if (!exit.settled) console.log(exit.cause, exit.reason)
+// "rounds" — limits.rounds reached → raise rounds, resume
+// "budget" — the usd cap hit       → raise usd, resume
+```
+
+A Round that exceeds `limits.timeout` is aborted and retried; if the errors persist past
+the retry cap, the Run exits with cause `"error"` and a reason saying what happened.
+
+Because state lives on disk, resuming is just running again: the next `loop run` continues
+from where the Record says the Loop left off.

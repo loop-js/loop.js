@@ -1,0 +1,41 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "loop.js",
+  "description": "A thin, opinionated runtime for autonomous agent loops",
+  "colors": {
+    "primary": "#0f172a",
+    "light": "#94a3b8",
+    "dark": "#0f172a"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get started",
+        "pages": ["index", "quickstart"]
+      },
+      {
+        "group": "Concepts",
+        "pages": [
+          "concepts/loop",
+          "concepts/prompts",
+          "concepts/limits",
+          "concepts/permissions"
+        ]
+      },
+      {
+        "group": "CLI",
+        "pages": ["cli/run", "cli/status", "cli/cron"]
+      },
+      {
+        "group": "API",
+        "pages": ["api/define", "api/run", "api/status"]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/loop-js/loop.js"
+    }
+  }
+}

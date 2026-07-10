@@ -1,0 +1,39 @@
+{
+  "name": "@loop.js/core",
+  "version": "0.0.0",
+  "description": "A thin, opinionated runtime for autonomous agent loops — state a Goal, the engine drives Rounds until a skeptical Verify agent settles it.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "loop": "./dist/cli/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run build"
+  },
+  "license": "Apache-2.0",
+  "author": "shitianfang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loop-js/loop.js.git",
+    "directory": "packages/loop-js"
+  },
+  "homepage": "https://github.com/loop-js/loop.js#readme",
+  "bugs": "https://github.com/loop-js/loop.js/issues",
+  "keywords": ["agent", "agent-loop", "autonomous", "claude", "verify", "llm", "cron", "cli"],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.201"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}

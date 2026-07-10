@@ -1,0 +1,84 @@
+---
+title: "loop cron"
+description: "Install, list, and remove schedules that run `loop run` — into the OS's own scheduler or Modal."
+---
+
+`loop cron` **installs** a schedule into a real scheduler and never runs one
+itself — loop.js owns no scheduler and no daemon. An installed schedule is an
+**Entry**; when it fires, that **tick** is a Trigger that runs `loop run` in the
+project directory. A tick is a scheduler firing; a **Run** is one execution of
+`loop run` — a tick may skip or expire without running, so the two are counted
+apart.
+
+```bash
+loop cron add "<cron-expr>" --until <settled|forever>
+                              install a schedule that runs `loop run` in this dir
+loop cron list                show installed schedules with ids and lifetimes
+loop cron remove <id>         remove a schedule
+
+  --until settled               the entry removes itself at the Loop's first settle — capped by
+                                --max-runs/--expires in case it never settles
+  --until forever               keep until `loop cron remove` — each tick on a settled Loop
+                                re-judges it through the Verify gate; caps opt in
+  --max-runs <n>                at most n runs of `loop run` (settled default: 3; forever: none)
+  --expires <duration>          self-remove this long after install — 45s, 90m, 36h, 7d
+                                (settled default: 24h; forever: none)
+  --backend <local|modal>       where to install (default: local)
+  --token-id <id>               the Modal token, for --backend modal; else MODAL_TOKEN_ID
+  --token-secret <secret>       …and its other half; else MODAL_TOKEN_SECRET, or `modal token set`
+```
+
+## Lifetime: `--until`
+
+An Entry declares its lifetime at `add` — `--until settled` or `--until forever`,
+no default; an `add` without `--until` is refused with an error naming both.
+
+**`--until settled`** — the Entry removes itself at the first of: the Loop
+settling (ok or give-up; the settling tick removes its own Entry), its
+`--max-runs`-th run of `loop run` (default 3), or `--expires` after install
+(default 24h) — a tick past the expiry removes the Entry *instead of* running.
+On settled the caps are always on — resizable, never removable — because they
+bound the path where no Verdict ever comes.
+
+**`--until forever`** — the Entry stays until `loop cron remove`. Each tick on a
+settled Loop re-judges it through the Verify gate, which is what lets a
+time-dependent Goal ("today's report exists") go stale and re-open daily. The
+same caps opt in as safety bounds; a settled exit never removes a forever Entry —
+only a cap or `remove` does.
+
+`--expires` takes a duration: a whole number with a unit — `45s`, `90m`, `36h`, `7d`.
+
+```bash
+loop cron add "*/30 * * * *" --until settled                              # gone at the first settle (capped)
+loop cron add "*/30 * * * *" --until settled --max-runs 10 --expires 7d   # same, caps resized
+loop cron add "0 8 * * *" --until forever                                 # stays until removed
+loop cron add "0 8 * * *" --until forever --expires 30d                   # standing, safety bound opted in
+```
+
+## Backends: `--backend`
+
+**`local`** (the default) installs into the OS's own scheduler, chosen by
+platform: **crontab** on Linux and other unix, **launchd** on macOS (cron there
+skips ticks while the machine sleeps and sits behind Full Disk Access), and
+**Task Scheduler** (`schtasks`) on Windows.
+
+**`modal`** installs into the cloud: Modal fires an ephemeral Runner per tick.
+It needs your own Modal token — pass `--token-id`/`--token-secret`, set
+`MODAL_TOKEN_ID`/`MODAL_TOKEN_SECRET`, or have run `modal token set`.
+
+```bash
+loop cron add "0 8 * * *" --until forever --backend modal
+```
+
+## `list` and `remove`
+
+`list` shows one line per Entry — `<id>  <expr>  <dir>  <lifetime>`, the lifetime
+in plain words such as `until-settled max-runs=3 expires=24h` or `forever`.
+`remove <id>` deletes the Entry; it exits `1` if no Entry has that id.
+
+```bash
+$ loop cron list
+3f9a1c2e  0 8 * * *  /home/dev/my-loop  until-settled max-runs=3 expires=24h
+$ loop cron remove 3f9a1c2e
+removed 3f9a1c2e
+```

@@ -1,0 +1,62 @@
+---
+title: "definition.status"
+description: "Read one Status snapshot of a Loop from disk — no Run started, no Lock claimed."
+---
+
+`status()` returns one snapshot of what has happened, read from disk. It starts no Run and
+claims no Lock.
+
+```ts
+import { Loop } from "@loop.js/core"
+
+const loop = Loop.define({ goal: { file: "GOAL.md" } })
+const status = await loop.status()
+
+if (status.running) console.log(`pid ${status.pid} is on round ${status.round}`)
+```
+
+## LoopStatus
+
+```ts
+type LoopStatus = {
+  running: boolean
+  pid?: number
+  round: number
+  usd: number
+  lastExit: Exit | null
+  verdicts: ({ round: number; ok: boolean; impossible: boolean; reason: string })[]
+}
+```
+
+| Field | Meaning |
+| ----- | ------- |
+| `running` | Whether a Run currently holds the Lock. |
+| `pid` | The Lock owner's process id — present iff `running`. |
+| `round` | The resume cursor — where the next Run picks up. |
+| `usd` | Total spend across the whole Loop so far. |
+| `lastExit` | How the last Run ended, or `null` if none has. |
+| `verdicts` | The full Verdict history with reasons, one entry per judged Round. `impossible` is always present on the wire — `false` when `ok`. |
+
+Reading `lastExit`:
+
+- `{ settled: true, verdict }` — a Verdict ended the Loop. `verdict.ok` says which settle it
+  was: success, or give-up (`ok: false` with `impossible: true`).
+- `{ settled: false, cause, reason }` — the Run was interrupted
+  (`budget | rounds | cancel | error | yield`) and the Loop stays live for the next Trigger.
+
+A never-run Loop is not an error — it reads as the zero state.
+
+## Agent runs keep no Record
+
+`Agent.define(config).run()` runs the Execute phase once, ungraded: no Verify, no Verdict,
+no Lock, no Record. Because it keeps no Record there is nothing to read back —
+`AgentDefinition` has no `status()`.
+
+```ts
+import { Agent } from "@loop.js/core"
+
+const agent = Agent.define({ goal: "Summarize the repo layout" })
+const exit = await agent.run().done()
+// { finished: true, reason }  — reached a terminal stop, not a "done" claim
+// { finished: false, cause: "budget" | "cancel" | "error", reason }
+```

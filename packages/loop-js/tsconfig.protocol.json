@@ -1,0 +1,9 @@
+{
+  "//": "Isolation check: protocol.ts must be the wire contract and nothing else. Compiled alone, with no @types (types: []) and only the ES2022 lib, so any Node/Bun/SDK reference fails CI. See MVP.md §11.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": [],
+    "lib": ["ES2022"]
+  },
+  "include": ["src/protocol.ts"]
+}

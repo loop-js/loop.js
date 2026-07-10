@@ -1,0 +1,86 @@
+---
+title: "definition.run"
+description: "Start a Run: claim the Lock, drive Rounds, and observe it through an async-iterable handle."
+---
+
+`run(options?)` claims the Lock and drives Rounds — Execute → Handoff → Verify → Persist —
+until a Verdict settles the Loop or something interrupts. It returns a `Run` handle:
+
+```ts
+interface Run extends AsyncIterable<LoopEvent> {
+  cancel(): void
+  done(): Promise<Exit>
+}
+```
+
+The engine self-drives: a Run runs whether or not you iterate. The iterator is a Client's
+view of the event stream — breaking out of it **unsubscribes**, it does not cancel. Every
+event carries its own `{ seq, round, phase }`; ignore `type`s you don't know. Iterating
+never throws: once the handle exists, everything ends as an `exit` event.
+
+```ts
+import { Loop } from "@loop.js/core"
+
+const loop = Loop.define({ goal: "Make the test suite pass" })
+const run = loop.run()
+
+for await (const event of run) {
+  if (event.type === "verdict") console.log(event.ok, event.reason)
+  if (event.type === "exit") console.log(event.exit, event.rounds, event.usd)
+}
+```
+
+## cancel and done
+
+`run.cancel()` stops the Run; it resolves to an `exit` event with `cause: "cancel"`.
+`run.done()` resolves to the Exit — how this Run ended:
+
+```ts
+type Exit =
+  | { settled: true; verdict: Verdict } // a Verdict ended the Loop — verdict.ok: success vs. give-up
+  | { settled: false; cause: "budget" | "rounds" | "cancel" | "error" | "yield"; reason: string }
+```
+
+Unsettled, the Loop stays live for the next Trigger.
+
+## RunOptions
+
+| Option | Type | Meaning |
+| ------ | ---- | ------- |
+| `signal` | `AbortSignal` | Tie the Run to an `AbortSignal`. |
+| `fresh` | `boolean` | Ignore any prior Record and start over — clears `workspace/` + `.loop/` + `.handoff/`. |
+| `force` | `boolean` | Take over the Lock even from a live owner instead of throwing `LoopBusy` (see below). |
+| `debug` | `boolean` | Surface raw executor events as diagnostics. |
+| `rounds` | `number` | Bound this one Run to N rounds, then exit `yield` without settling. |
+| `deadline` | `number \| Date \| Duration` | Bound this one Run to a wall-clock deadline, then exit `yield`: epoch ms, a `Date`, or a `Duration` from now (`"90m"`). |
+
+## Yield slicing: rounds and deadline
+
+`rounds` and `deadline` bound **this one Run**, not the Loop. At the bound the Run exits
+`{ settled: false, cause: "yield" }` without settling, and the next `run()` resumes from the
+disk cursor. The whole-Loop guard is `limits.rounds` on the config — a different knob.
+
+```ts
+const slice = loop.run({ rounds: 2, deadline: "90m" })
+const exit = await slice.done() // cause "yield" if a bound was hit first
+```
+
+## LoopBusy
+
+`run()` throws `LoopBusy` synchronously when the Lock is held by a live owner (a fresh
+heartbeat). It does not block or queue — a live owner refuses overlap. The error carries the
+owner's `pid` and `heartbeatAgeMs` so a host can report who holds the Workspace.
+
+```ts
+import { Loop, LoopBusy } from "@loop.js/core"
+
+try {
+  const run = loop.run()
+} catch (err) {
+  if (err instanceof LoopBusy) console.log(`pid ${err.pid} holds the Lock`)
+}
+```
+
+`force: true` claims the Lock anyway. The caller is responsible for having stopped that
+owner first — the CLI's `loop run --force` stops the process before claiming; an embedding
+host must do its own equivalent.

@@ -1,0 +1,53 @@
+---
+title: "Permissions"
+description: "Per-phase tool gating: read, auto, bypass — the judge cannot touch the work tree"
+---
+
+An unattended loop cannot pause to ask permission, so loop.js gates tool calls with
+**Permissions**, resolved **per phase**. Three modes:
+
+| Mode | What the agent can do |
+|---|---|
+| `"read"` | read tools plus sandboxed commands; the write tools are denied at the adapter |
+| `"auto"` | edits inside the work tree auto-approved; shell runs in the provider's command sandbox; the rest denied |
+| `"bypass"` | full autonomy, no gating — opt-in, for a Run that is contained |
+
+## Defaults split by role
+
+- **Execute defaults to `"auto"`** — the worker writing State into its own Workspace needs
+  no gate; what escapes the work tree does.
+- **Verify defaults to `"read"`** — the judge cannot modify the work tree. This is
+  **enforced by the adapter** — the write tools are denied — not by prompt discipline: no
+  phrasing in a prompt can talk the judge into doing the worker's job.
+
+<Note>
+  A bar whose judge must write probes opts in explicitly:
+  `verify: { permissions: "auto" }`.
+</Note>
+
+## Resolution: phase override > loop-level > phase default
+
+Each phase resolves its own value — a per-phase override wins, then the loop-level
+`permissions`, then the phase default.
+
+```ts
+import { Loop } from "@loop.js/core"
+
+export default Loop.define({
+  goal: "Build a playable 2D platformer in ./game",
+
+  // Per-phase override — raise just the judge:
+  // verify: { permissions: "auto" },
+
+  // Loop-level — raises both phases at once:
+  // permissions: "bypass",
+})
+```
+
+The loop-level knob raises both phases at once — for example `"bypass"` for a Run that is
+contained: inside a sandbox the agent is fully autonomous, and containment, not
+permission-gating, bounds the blast radius.
+
+<Warning>
+  `"bypass"` disables tool gating entirely. Opt in only when a sandbox contains the Run.
+</Warning>

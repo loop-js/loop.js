@@ -1,0 +1,80 @@
+---
+title: "The Loop"
+description: "Goal, Round, Verdict, settle — the core model of loop.js"
+---
+
+A **Loop** pursues one **Goal** until a **Verdict** settles it. You state the Goal once;
+the engine runs Round after Round — each Round one attempt plus one independent judgement —
+until a separate Verify agent judges the work done, or judges the Goal impossible.
+
+```ts
+import { Loop } from "@loop.js/core"
+
+export default Loop.define({
+  goal: "Build a playable 2D platformer in ./game",
+  limits: { rounds: 50, usd: 20 },
+})
+```
+
+## The Goal
+
+The Goal is the set-once objective — the one required declaration and the constant bar.
+It is injected into every Execute Round, and when you give no Verify prompt it is also
+what the work is judged against. Goal-only is a first-class run mode, not a degraded one.
+
+## The Round
+
+Each Round is one pass through four beats:
+
+```
+Execute ──▶ Handoff ──▶ Verify ──▶ Persist
+```
+
+- **Execute** — the agent attempts the task, working the files in the Workspace
+  (`./workspace` by default).
+- **Handoff** — the same agent writes a note to its successor: a compact summary of the
+  Round, saved under `.handoff/rounds/`.
+- **Verify** — a **separate, skeptical agent** judges the work against the bar and returns
+  a Verdict. It judges primarily from the handoff note and escalates — reading the Round's
+  transcript or the work tree, running checks — when a claim needs ground truth. The
+  Execute agent never grades its own homework.
+- **Persist** — framework bookkeeping; no agent runs.
+
+## Settle: only a Verdict ends a Loop
+
+The Verdict is two booleans plus a mandatory `reason`:
+
+| Verdict | Effect |
+|---|---|
+| `ok: true` | settle — the Loop succeeds |
+| `ok: false, impossible: false` | run another Round |
+| `ok: false, impossible: true` | settle — give up rather than waste a Round |
+
+**Only a Verdict can settle a Loop.** Limits (`rounds`, `usd`, `timeout`) are runaway
+guards, never the definition of done: hitting one ends the Run without settling, and the
+Loop stays live to resume. Giving up is itself a settle — the Verify agent judged the Goal
+impossible — not a separate terminal state.
+
+`reason` is always present. On a not-ok Verdict it says what's missing, and it feeds the
+next Round: the next Execute agent starts from that feedback instead of guessing.
+
+## Fresh context each Round, memory on disk
+
+Every Round's agent starts in a fresh session. Nothing is carried in process — all loop
+state lives on disk in the Workspace:
+
+- the **work tree** — the work itself;
+- the **`.handoff/` notes** — each Round's summary, plus an index the framework maintains.
+
+A new Round reads this back itself. That is what makes a Loop resumable: kill the process,
+come back tomorrow, run again — it continues from where the disk says it left off.
+
+## The Record
+
+The framework keeps its own bookkeeping in `.loop/record.json`: the resume cursor, the
+Verdict history, the cost ledger, and the last exit. Agents never read it — it is what
+`loop status` reads:
+
+```bash
+loop status    # running? round, spend, last verdict + reason
+```
