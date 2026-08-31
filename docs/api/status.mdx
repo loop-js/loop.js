@@ -21,6 +21,7 @@ if (status.running) console.log(`pid ${status.pid} is on round ${status.round}`)
 type LoopStatus = {
   running: boolean
   pid?: number
+  progressSeq?: number | null
   round: number
   usd: number
   lastExit: Exit | null
@@ -32,6 +33,7 @@ type LoopStatus = {
 | ----- | ------- |
 | `running` | Whether a Run currently holds the Lock. |
 | `pid` | The Lock owner's process id — present iff `running`. |
+| `progressSeq` | The owner's latest durable journal sequence — present iff `running`; `null` before its first journaled event. |
 | `round` | The resume cursor — where the next Run picks up. |
 | `usd` | Total spend across the whole Loop so far. |
 | `lastExit` | How the last Run ended, or `null` if none has. |

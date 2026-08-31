@@ -32,6 +32,19 @@ test("seq resumes from the last line on reopen (replay key survives)", async () 
   expect((await j2.append({ type: "text", round: 1, phase: "verify", text: "x" })).seq).toBe(2)
 })
 
+test("lastSeq reports durable journal progress, not merely reserved sequence numbers", async () => {
+  const j = Journal.open(dir)
+  expect(j.lastSeq).toBeNull()
+
+  j.reserveSeq() // a stream-only observation: assigned, but never journaled
+  expect(j.lastSeq).toBeNull()
+
+  const written = await j.append({ type: "text", round: 1, phase: "execute", text: "durable" })
+  expect(written.seq).toBe(1)
+  expect(j.lastSeq).toBe(1)
+  expect(Journal.open(dir).lastSeq).toBe(1)
+})
+
 test("foldPartial folds a stranded sidecar as text{partial:true}, then clears it", async () => {
   const j = Journal.open(dir)
   await j.pushDelta(2, "execute", "half a sen")

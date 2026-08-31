@@ -123,7 +123,7 @@ export function define(config: LoopConfig, executor: Executor = claudeExecutor()
         // The wipe happens under the Lock we now hold — a live owner was refused above, so
         // `fresh` can never clear a Workspace out from under a running Loop.
         applyFresh(paths)
-        record = { ...freshRecord(), epoch: 1, status: "running", heartbeat: { pid: lock.pid, ts: Date.now() } }
+        record = { ...freshRecord(), epoch: 1, status: "running", heartbeat: { pid: lock.pid, ts: Date.now(), seq: null } }
         writeRecord(paths.loopDir, record)
         tookOver = false
       }
@@ -146,7 +146,11 @@ export function define(config: LoopConfig, executor: Executor = claudeExecutor()
 
       const drive = async (): Promise<void> => {
         await journal.foldPartial() // fold any partial stranded by a crash before we resume
-        const commit = (mutate?: (r: Record) => void): void => commitRecord(paths.loopDir, record, Date.now, mutate)
+        const commit = (mutate?: (r: Record) => void): void =>
+          commitRecord(paths.loopDir, record, Date.now, (r) => {
+            mutate?.(r)
+            if (r.heartbeat) r.heartbeat.seq = journal.lastSeq
+          })
         if (tookOver) {
           commit((r) => {
             r.lastExit = { settled: false, cause: "error", reason: "previous Run interrupted mid-Round; taken over" }
@@ -284,7 +288,7 @@ export function define(config: LoopConfig, executor: Executor = claudeExecutor()
       const claim = decideClaim(rec, Date.now(), DEFAULT_STALENESS_MS)
       return {
         running: claim.kind === "busy",
-        ...(claim.kind === "busy" ? { pid: claim.pid } : {}),
+        ...(claim.kind === "busy" ? { pid: claim.pid, progressSeq: rec.heartbeat?.seq ?? null } : {}),
         round: rec.cursor,
         usd: rec.cost.usd,
         lastExit: rec.lastExit,
