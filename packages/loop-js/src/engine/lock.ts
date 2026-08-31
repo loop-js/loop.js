@@ -73,7 +73,7 @@ export class Lock {
       ...base,
       epoch: base.epoch + 1,
       status: "running",
-      heartbeat: { pid: this.pid, ts: this.now() },
+      heartbeat: { pid: this.pid, ts: this.now(), seq: existing?.heartbeat?.seq ?? null },
     }
     return { claimed, tookOver: decision.kind === "takeover" }
   }

@@ -19,8 +19,13 @@ import type { Exit, Verdict } from "../protocol.ts"
 
 export type RunStatus = "running" | "stopped"
 
-/** The Lock's liveness signal: which process holds the Workspace, and when it last proved alive. */
-export type Heartbeat = { pid: number; ts: number }
+/** The Lock's liveness signal: owner, last proof of life, and its latest durable journal progress. */
+export type Heartbeat = {
+  pid: number
+  ts: number
+  /** Optional only for Records written before progress-bearing heartbeats shipped. */
+  seq?: number | null
+}
 
 export type VerdictLogEntry = { round: number; verdict: Verdict }
 

@@ -60,6 +60,8 @@ export type AgentExit =
 export type LoopStatus = {
   running: boolean
   pid?: number
+  /** Latest durable journal sequence observed by the owner; present iff running, null before progress. */
+  progressSeq?: number | null
   round: number
   usd: number
   lastExit: Exit | null

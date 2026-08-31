@@ -357,6 +357,8 @@ test("cost commits to the Record per step — a crash loses at most one step's s
     if (Date.now() - start > 5000) throw new Error("ledger never saw the step")
     await new Promise((res) => setTimeout(res, 10))
   }
+  expect(readRecord(loopDir)?.heartbeat?.seq).toBe(1) // phase-start=0, durable cost event=1
+  expect((await definition.status()).progressSeq).toBe(1)
   release()
   await r.done()
   expect(readRecord(loopDir)?.cost.usd).toBe(4)

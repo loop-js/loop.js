@@ -51,7 +51,7 @@ describe("Lock.acquire (synchronous CAS claim)", () => {
     const { record, tookOver } = new Lock({ loopDir: dir, pid: 42, now }).acquire()
     expect(tookOver).toBe(false)
     expect(record.status).toBe("running")
-    expect(record.heartbeat).toEqual({ pid: 42, ts: clock })
+    expect(record.heartbeat).toEqual({ pid: 42, ts: clock, seq: null })
     expect(readRecord(dir)?.heartbeat?.pid).toBe(42)
   })
 

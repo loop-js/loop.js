@@ -71,6 +71,7 @@ export async function* readJournal(loopDir: string, sinceSeq = 0): AsyncGenerato
 
 export class Journal {
   private seqCounter: number
+  private lastSeqCounter: number | null
   private deltaRound = 0
   private deltaPhase: JournaledEvent["phase"] = "execute"
   /** Settles when every append started so far has hit the disk — see {@link flushed}. */
@@ -81,6 +82,7 @@ export class Journal {
     startSeq: number,
   ) {
     this.seqCounter = startSeq
+    this.lastSeqCounter = startSeq === 0 ? null : startSeq - 1
   }
 
   /** Synchronous, so `run()` can open the Journal and pin the Run's start seq before returning. */
@@ -93,6 +95,11 @@ export class Journal {
     return this.seqCounter
   }
 
+  /** The latest sequence number known to be durable in the journal; null before its first event. */
+  get lastSeq(): number | null {
+    return this.lastSeqCounter
+  }
+
   /** Reserve the next `seq` without writing — for observations that emit live before persisting. */
   reserveSeq(): number {
     return this.seqCounter++
@@ -103,8 +110,11 @@ export class Journal {
    * {@link flushed} — the ReplaySource contract rests on that. */
   write(evt: JournaledEvent): Promise<void> {
     const op = appendFile(join(this.loopDir, JOURNAL_FILE), JSON.stringify(evt) + "\n", "utf8")
-    this.tail = Promise.allSettled([this.tail, op]) // never rejects — one failed append cannot poison the chain
-    return op
+    const written = op.then(() => {
+      this.lastSeqCounter = Math.max(this.lastSeqCounter ?? -1, evt.seq)
+    })
+    this.tail = Promise.allSettled([this.tail, written]) // never rejects — one failed append cannot poison the chain
+    return written
   }
 
   /**

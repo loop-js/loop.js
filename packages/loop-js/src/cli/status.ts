@@ -28,7 +28,9 @@ export type StatusOptions = {
 function statusLines(s: LoopStatus): string[] {
   const last = s.verdicts.at(-1)
   return [
-    s.running ? `running: yes (pid ${s.pid})` : "running: no",
+    s.running
+      ? `running: yes (pid ${s.pid}, journal seq ${s.progressSeq === null ? "none" : (s.progressSeq ?? "unknown")})`
+      : "running: no",
     `round: ${s.round}`,
     `spend: $${s.usd.toFixed(2)}`,
     `verdict: ${last ? verdictText(last) : "none"}`,

@@ -20,7 +20,7 @@ Four lines, at a glance:
 
 ```bash
 $ loop status
-running: yes (pid 41250)
+running: yes (pid 41250, journal seq 27)
 round: 3
 spend: $1.42
 verdict: not met — the report is missing the summary section
@@ -28,7 +28,7 @@ verdict: not met — the report is missing the summary section
 
 | Line | Meaning |
 | ---- | ------- |
-| `running` | `yes (pid <n>)` while a process owns the Lock, else `no` |
+| `running` | `yes (pid <n>, journal seq <n>)` while a process owns the Lock, including its latest durable progress; else `no` |
 | `round` | the Round count so far |
 | `spend` | dollars spent, e.g. `$1.42` |
 | `verdict` | the last Verdict with its reason — `met`, `not met`, or `impossible`; `none` when the Loop has never been judged |
@@ -51,7 +51,9 @@ $ loop status --json
 }
 ```
 
-`pid` is present only while the Loop is running. `lastExit` is how the last Run
+`pid` and `progressSeq` are present only while the Loop is running. `progressSeq`
+is the latest durable journal sequence observed by its heartbeat (`null` before the
+first event), so repeated snapshots distinguish liveness from progress. `lastExit` is how the last Run
 ended — `{ settled: true, verdict }` or `{ settled: false, cause, reason }` —
 and is `null` before the first Run completes. `verdicts` carries every Verdict
 so far, each tagged with its Round.

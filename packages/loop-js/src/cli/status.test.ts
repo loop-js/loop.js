@@ -75,9 +75,9 @@ test("prints the standing: round, spend, and the last verdict with its reason", 
 
 test("a live owner shows as running, with its pid", async () => {
   await writeConfig()
-  writeRecord(join(root, ".loop"), { ...settled(), status: "running", heartbeat: { pid: 4242, ts: Date.now() } })
+  writeRecord(join(root, ".loop"), { ...settled(), status: "running", heartbeat: { pid: 4242, ts: Date.now(), seq: 17 } })
   const { out } = await run([])
-  expect(out).toContain("running: yes (pid 4242)\n")
+  expect(out).toContain("running: yes (pid 4242, journal seq 17)\n")
 })
 
 test("--json prints the LoopStatus snapshot, parseable by a wrapper", async () => {
