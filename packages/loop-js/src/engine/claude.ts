@@ -130,6 +130,17 @@ export type TokenUsage = {
   cache_creation?: { ephemeral_5m_input_tokens?: number | null; ephemeral_1h_input_tokens?: number | null } | null
 }
 
+function hasTokenUsage(u: TokenUsage): boolean {
+  return (
+    (u.input_tokens ?? 0) !== 0 ||
+    (u.output_tokens ?? 0) !== 0 ||
+    (u.cache_creation_input_tokens ?? 0) !== 0 ||
+    (u.cache_read_input_tokens ?? 0) !== 0 ||
+    (u.cache_creation?.ephemeral_5m_input_tokens ?? 0) !== 0 ||
+    (u.cache_creation?.ephemeral_1h_input_tokens ?? 0) !== 0
+  )
+}
+
 export function stepUsage(u: TokenUsage, model: string): StepUsage {
   const inputTokens = u.input_tokens ?? 0
   const outputTokens = u.output_tokens ?? 0
@@ -146,7 +157,7 @@ export function stepUsage(u: TokenUsage, model: string): StepUsage {
         cachedInputTokens * p.input * CACHE_READ +
         outputTokens * p.output) /
       1e6
-    : 0 //  an unpriced model derives nothing; the result's `total_cost_usd` reconciles it
+    : 0 //  an unpriced model derives nothing; drainSession fails closed before this can bypass the guard
   return { inputTokens, outputTokens, cachedInputTokens, usd }
 }
 
@@ -181,6 +192,9 @@ export async function* drainSession(
         // repeating the turn's cumulative usage (contract §Mapping 1). Cost a turn once, on its id.
         if (m.message.id !== turn) {
           turn = m.message.id
+          if (!PRICES[model] && hasTokenUsage(m.message.usage)) {
+            throw new Interruption("budget", `unpriced model '${model}' produced token usage`)
+          }
           const usage = stepUsage(m.message.usage, model)
           derived += usage.usd
           yield { kind: "cost", usage }
